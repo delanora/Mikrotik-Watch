@@ -18,6 +18,7 @@
         </div>
         <div class="navbar-menu">
             <a href="/dashboard">Dashboard</a>
+            <a href="/clients">Clientes</a>
             <a href="/mikrotiks">Equipamentos</a>
             <a href="/settings">Configurações</a>
         </div>

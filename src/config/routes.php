@@ -24,6 +24,14 @@ return [
     ['GET',  '/dashboard',                 'DashboardController@index'],
     ['GET',  '/dashboard/stats',           'DashboardController@stats'],
 
+    // ─── Clientes ─────────────────────────────────────────────────────────────
+    ['GET',  '/clients',                   'ClientController@index'],
+    ['GET',  '/clients/create',            'ClientController@create'],
+    ['POST', '/clients',                   'ClientController@store'],
+    ['GET',  '/clients/{id}/edit',         'ClientController@edit'],
+    ['POST',  '/clients/{id}',             'ClientController@update'],
+    ['POST',  '/clients/{id}/delete',      'ClientController@destroy'],
+
     // ─── Equipamentos Mikrotik ─────────────────────────────────────────────────
     ['GET',  '/mikrotiks',                 'MikrotikController@index'],
     ['GET',  '/mikrotiks/create',          'MikrotikController@create'],

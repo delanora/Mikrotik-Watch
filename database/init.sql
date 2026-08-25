@@ -287,5 +287,5 @@ INSERT INTO users (name, email, password_hash)
 VALUES (
     'Administrador',
     'admin@example.com',
-    '$2b$12$DldqJG5GoRKGaAPrqaf9J.2WFL5WJGVUz6ONSwi.rzI1qLyeD6k8W'
+    '$2y$12$Wt6BNjqSE8NRDl8nBobE4e5ORYuAzMdW5Wv6aAE/NBvCoVocPYxKy'
 );

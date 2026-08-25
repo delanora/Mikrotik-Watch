@@ -6,12 +6,14 @@ namespace App\Controller;
 
 use App\Service\MikrotikClient;
 use App\Service\CredentialCrypto;
+use App\Service\Http\MockTransport;
 use App\Exception\MikrotikApiException;
 
 /**
  * Mikrotik Watch - Mikrotik Controller
  *
- * Gerenciamento dos equipamentos Mikrotik RouterOS.
+ * CRUD completo para gerenciamento de equipamentos Mikrotik RouterOS.
+ * Senhas criptografadas com CredentialCrypto (sodium_crypto_secretbox).
  */
 class MikrotikController
 {
@@ -22,14 +24,21 @@ class MikrotikController
         $this->config = $config;
     }
 
+    // ─── CRUD ─────────────────────────────────────────────────────────────────
+
     /**
-     * Lista todos os equipamentos.
+     * Lista todos os equipamentos ativos.
      */
     public function index(): void
     {
         $db = $this->getDb();
         $stmt = $db->query('
-            SELECT m.*, c.name AS client_name
+            SELECT
+                m.id, m.name, m.host, m.port, m.use_ssl, m.username,
+                m.current_status, m.status_since, m.last_checked_at,
+                m.last_cpu_load, m.board_name, m.routeros_version,
+                m.active, m.created_at,
+                c.name AS client_name, c.id AS client_id
             FROM mikrotiks m
             LEFT JOIN clients c ON c.id = m.client_id
             WHERE m.active = true
@@ -38,7 +47,9 @@ class MikrotikController
         $mikrotiks = $stmt->fetchAll();
 
         $pageTitle = 'Equipamentos';
+        require __DIR__ . '/../../views/layouts/sidebar.php';
         require __DIR__ . '/../../views/mikrotiks/index.php';
+        require __DIR__ . '/../../views/layouts/footer.php';
     }
 
     /**
@@ -47,38 +58,52 @@ class MikrotikController
     public function create(): void
     {
         $db = $this->getDb();
+        $mikrotik = null;
         $clients = $db->query('SELECT id, name FROM clients WHERE active = true ORDER BY name')->fetchAll();
+        $errors = [];
 
         $pageTitle = 'Novo Equipamento';
+        require __DIR__ . '/../../views/layouts/sidebar.php';
         require __DIR__ . '/../../views/mikrotiks/form.php';
+        require __DIR__ . '/../../views/layouts/footer.php';
     }
 
     /**
-     * Salva um novo equipamento.
+     * Salva um novo equipamento com senha criptografada.
      */
     public function store(): void
     {
         $db = $this->getDb();
         $crypto = $this->getCrypto();
 
-        $clientId = $_POST['client_id'] ?? '';
+        $clientId = trim($_POST['client_id'] ?? '');
         $name = trim($_POST['name'] ?? '');
         $host = trim($_POST['host'] ?? '');
         $port = (int) ($_POST['port'] ?? 443);
         $useSsl = isset($_POST['use_ssl']);
-        $username = trim($_POST['username'] ?? 'admin');
+        $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        if ($name === '' || $host === '' || $clientId === '') {
-            $this->redirect('/mikrotiks/create', 'Preencha todos os campos obrigatórios.');
+        $errors = $this->validate($clientId, $name, $host, $username, $password);
+
+        if (!empty($errors)) {
+            $mikrotik = $_POST;
+            $clients = $this->getClients();
+            $pageTitle = 'Novo Equipamento';
+            http_response_code(422);
+            require __DIR__ . '/../../views/layouts/sidebar.php';
+            require __DIR__ . '/../../views/mikrotiks/form.php';
+            require __DIR__ . '/../../views/layouts/footer.php';
             return;
         }
 
-        $encryptedPassword = $crypto->encrypt($password);
+        // Criptografar senha com CredentialCrypto e armazenar como BYTEA
+        $encryptedBase64 = $crypto->encrypt($password);
+        $encryptedBytes = base64_decode($encryptedBase64, true);
 
         $stmt = $db->prepare('
-            INSERT INTO mikrotiks (client_id, name, host, port, use_ssl, username, password_encrypted)
-            VALUES (:client_id, :name, :host, :port, :use_ssl, :username, :password_encrypted)
+            INSERT INTO mikrotiks (client_id, name, host, port, use_ssl, username, password_encrypted, current_status)
+            VALUES (:client_id, :name, :host, :port, :use_ssl, :username, decode(:password_encrypted, \'base64\'), :current_status)
         ');
         $stmt->execute([
             ':client_id'          => $clientId,
@@ -87,7 +112,8 @@ class MikrotikController
             ':port'               => $port,
             ':use_ssl'            => $useSsl,
             ':username'           => $username,
-            ':password_encrypted' => hex2bin(substr($encryptedPassword, 2)), // armazenar como BYTEA
+            ':password_encrypted' => $encryptedBase64,
+            ':current_status'     => 'unknown',
         ]);
 
         header('Location: /mikrotiks');
@@ -117,7 +143,6 @@ class MikrotikController
             return;
         }
 
-        // Buscar health_log recente
         $stmt = $db->prepare('
             SELECT * FROM health_log
             WHERE mikrotik_id = :id
@@ -128,11 +153,13 @@ class MikrotikController
         $healthLogs = $stmt->fetchAll();
 
         $pageTitle = $mikrotik['name'];
+        require __DIR__ . '/../../views/layouts/sidebar.php';
         require __DIR__ . '/../../views/mikrotiks/show.php';
+        require __DIR__ . '/../../views/layouts/footer.php';
     }
 
     /**
-     * Formulário de edição.
+     * Formulário de edição — senha nunca é exibida.
      */
     public function edit(): void
     {
@@ -149,14 +176,17 @@ class MikrotikController
             return;
         }
 
-        $clients = $db->query('SELECT id, name FROM clients WHERE active = true ORDER BY name')->fetchAll();
+        $clients = $this->getClients();
+        $errors = [];
 
         $pageTitle = 'Editar: ' . $mikrotik['name'];
+        require __DIR__ . '/../../views/layouts/sidebar.php';
         require __DIR__ . '/../../views/mikrotiks/form.php';
+        require __DIR__ . '/../../views/layouts/footer.php';
     }
 
     /**
-     * Atualiza um equipamento.
+     * Atualiza um equipamento. Senha só atualiza se preenchida.
      */
     public function update(): void
     {
@@ -168,21 +198,35 @@ class MikrotikController
         $host = trim($_POST['host'] ?? '');
         $port = (int) ($_POST['port'] ?? 443);
         $useSsl = isset($_POST['use_ssl']);
-        $username = trim($_POST['username'] ?? 'admin');
+        $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        if ($name === '' || $host === '') {
-            $this->redirect("/mikrotiks/{$id}/edit", 'Preencha todos os campos obrigatórios.');
+        $errors = $this->validateUpdate($name, $host, $username);
+
+        if (!empty($errors)) {
+            $mikrotik = array_merge(
+                $this->findMikrotik($id) ?? [],
+                $_POST,
+                ['id' => $id]
+            );
+            $clients = $this->getClients();
+            $pageTitle = 'Editar: ' . $name;
+            http_response_code(422);
+            require __DIR__ . '/../../views/layouts/sidebar.php';
+            require __DIR__ . '/../../views/mikrotiks/form.php';
+            require __DIR__ . '/../../views/layouts/footer.php';
             return;
         }
 
         if ($password !== '') {
-            $encryptedPassword = $crypto->encrypt($password);
+            // Senha preenchida → criptografar e atualizar
+            $encryptedBase64 = $crypto->encrypt($password);
+
             $stmt = $db->prepare('
                 UPDATE mikrotiks SET
                     name = :name, host = :host, port = :port,
                     use_ssl = :use_ssl, username = :username,
-                    password_encrypted = :password_encrypted
+                    password_encrypted = decode(:password_encrypted, \'base64\')
                 WHERE id = :id
             ');
             $stmt->execute([
@@ -191,10 +235,11 @@ class MikrotikController
                 ':port'               => $port,
                 ':use_ssl'            => $useSsl,
                 ':username'           => $username,
-                ':password_encrypted' => hex2bin(substr($encryptedPassword, 2)),
+                ':password_encrypted' => $encryptedBase64,
                 ':id'                 => $id,
             ]);
         } else {
+            // Senha vazia → manter a anterior
             $stmt = $db->prepare('
                 UPDATE mikrotiks SET
                     name = :name, host = :host, port = :port,
@@ -231,31 +276,60 @@ class MikrotikController
     }
 
     /**
-     * Testa a conexão com o equipamento via API REST.
+     * Testa a conexão via API REST usando dados do formulário (AJAX).
+     * Aceita tanto dados do formulário (POST JSON) quanto dados do banco (por ID na URL).
      */
     public function testConnection(): void
     {
-        $id = $this->extractId();
-        $db = $this->getDb();
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
 
-        $stmt = $db->prepare('SELECT * FROM mikrotiks WHERE id = :id AND active = true');
-        $stmt->execute([':id' => $id]);
-        $mikrotik = $stmt->fetch();
+        if (str_contains($contentType, 'application/json')) {
+            // Dados do formulário via AJAX (antes de salvar)
+            $json = json_decode(file_get_contents('php://input'), true);
 
-        if ($mikrotik === false) {
-            $this->jsonResponse(404, ['success' => false, 'message' => 'Equipamento não encontrado.']);
+            $host = trim($json['host'] ?? '');
+            $port = (int) ($json['port'] ?? 443);
+            $useSsl = filter_var($json['use_ssl'] ?? true, FILTER_VALIDATE_BOOLEAN);
+            $username = trim($json['username'] ?? '');
+            $password = $json['password'] ?? '';
+        } else {
+            // Dados do banco (por ID na URL)
+            $id = $this->extractId();
+            $db = $this->getDb();
+
+            $stmt = $db->prepare('SELECT * FROM mikrotiks WHERE id = :id AND active = true');
+            $stmt->execute([':id' => $id]);
+            $mikrotik = $stmt->fetch();
+
+            if ($mikrotik === false) {
+                $this->jsonResponse(404, ['success' => false, 'message' => 'Equipamento não encontrado.']);
+                return;
+            }
+
+            $crypto = $this->getCrypto();
+            $encryptedBase64 = base64_encode($mikrotik['password_encrypted']);
+            $password = $crypto->decrypt($encryptedBase64);
+
+            $host = $mikrotik['host'];
+            $port = (int) $mikrotik['port'];
+            $useSsl = (bool) $mikrotik['use_ssl'];
+            $username = $mikrotik['username'];
+        }
+
+        if ($host === '' || $username === '' || $password === '') {
+            $this->jsonResponse(422, [
+                'success' => false,
+                'message' => 'Preencha host, usuário e senha para testar a conexão.',
+            ]);
             return;
         }
 
-        $crypto = $this->getCrypto();
-        $password = $crypto->decrypt(bin2hex($mikrotik['password_encrypted']));
-
         $client = new MikrotikClient(
-            host: $mikrotik['host'],
-            username: $mikrotik['username'],
+            host: $host,
+            username: $username,
             password: $password,
-            port: (int) $mikrotik['port'],
-            useSsl: (bool) $mikrotik['use_ssl'],
+            port: $port,
+            useSsl: $useSsl,
             verifySsl: !$this->config['mikrotik']['allow_self_signed'],
             timeout: $this->config['mikrotik']['default_timeout'],
         );
@@ -279,21 +353,78 @@ class MikrotikController
 
     private function extractId(): string
     {
-        global $router;
         $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
         $uri = rtrim($uri, '/');
 
-        // Extrair ID da URI (último segmento numérico/UUID)
-        if (preg_match('#/([0-9a-f-]{36})$#i', $uri, $matches)) {
+        // UUID: /mikrotiks/{uuid} ou /mikrotiks/{uuid}/edit etc.
+        if (preg_match('#/mikrotiks/([0-9a-f-]{36})(?:/|$)#i', $uri, $matches)) {
             return $matches[1];
         }
-        if (preg_match('#/(\d+)$#', $uri, $matches)) {
+        // ID numérico
+        if (preg_match('#/mikrotiks/(\d+)(?:/|$)#', $uri, $matches)) {
             return $matches[1];
         }
 
         http_response_code(400);
         echo 'ID inválido.';
         exit;
+    }
+
+    private function findMikrotik(string $id): ?array
+    {
+        $db = $this->getDb();
+        $stmt = $db->prepare('SELECT * FROM mikrotiks WHERE id = :id AND active = true');
+        $stmt->execute([':id' => $id]);
+        $result = $stmt->fetch();
+        return $result ?: null;
+    }
+
+    private function getClients(): array
+    {
+        $db = $this->getDb();
+        return $db->query('SELECT id, name FROM clients WHERE active = true ORDER BY name')->fetchAll();
+    }
+
+    private function validate(string $clientId, string $name, string $host, string $username, string $password): array
+    {
+        $errors = [];
+
+        if ($clientId === '') {
+            $errors[] = 'Selecione um cliente.';
+        }
+        if ($name === '') {
+            $errors[] = 'O nome do equipamento é obrigatório.';
+        } elseif (mb_strlen($name) > 150) {
+            $errors[] = 'O nome não pode ter mais de 150 caracteres.';
+        }
+        if ($host === '') {
+            $errors[] = 'O host (IP ou DDNS) é obrigatório.';
+        }
+        if ($username === '') {
+            $errors[] = 'O usuário é obrigatório.';
+        }
+        if ($password === '') {
+            $errors[] = 'A senha é obrigatória.';
+        }
+
+        return $errors;
+    }
+
+    private function validateUpdate(string $name, string $host, string $username): array
+    {
+        $errors = [];
+
+        if ($name === '') {
+            $errors[] = 'O nome do equipamento é obrigatório.';
+        }
+        if ($host === '') {
+            $errors[] = 'O host (IP ou DDNS) é obrigatório.';
+        }
+        if ($username === '') {
+            $errors[] = 'O usuário é obrigatório.';
+        }
+
+        return $errors;
     }
 
     private function getDb(): \PDO
@@ -328,7 +459,7 @@ class MikrotikController
     {
         http_response_code($status);
         header('Content-Type: application/json');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
         exit;
     }
 }

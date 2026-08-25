@@ -27,7 +27,7 @@ class ClientController
      */
     public function index(): void
     {
-        $stmt = $this->db->query('
+        $stmt = $this->db->query("
             SELECT
                 c.*,
                 COALESCE(m.mikrotik_count, 0) AS mikrotik_count,
@@ -45,7 +45,7 @@ class ClientController
                 GROUP BY client_id
             ) m ON m.client_id = c.id
             ORDER BY c.name ASC
-        ');
+        ");
         $clients = $stmt->fetchAll();
 
         $pageTitle = 'Clientes';

@@ -27,24 +27,65 @@ class MikrotikController
     // ─── CRUD ─────────────────────────────────────────────────────────────────
 
     /**
-     * Lista todos os equipamentos ativos.
+     * Lista todos os equipamentos ativos com filtro e ordenação.
+     * Ordenação: offline > unknown > online (por status_since), depois por cliente + nome.
      */
     public function index(): void
     {
         $db = $this->getDb();
-        $stmt = $db->query('
+        $filterClientId = $_GET['client_id'] ?? '';
+
+        // Filtro por cliente
+        $whereClause = 'WHERE m.active = true';
+        $params = [];
+        if ($filterClientId !== '') {
+            $whereClause .= ' AND m.client_id = :client_id';
+            $params[':client_id'] = $filterClientId;
+        }
+
+        // Ordenação: offline primeiro, depois unknown, depois online
+        $sql = "
             SELECT
                 m.id, m.name, m.host, m.port, m.use_ssl, m.username,
                 m.current_status, m.status_since, m.last_checked_at,
-                m.last_cpu_load, m.board_name, m.routeros_version,
+                m.last_cpu_load, m.last_memory_free, m.last_memory_total,
+                m.last_temperature, m.last_voltage,
+                m.board_name, m.routeros_version,
                 m.active, m.created_at,
                 c.name AS client_name, c.id AS client_id
             FROM mikrotiks m
             LEFT JOIN clients c ON c.id = m.client_id
-            WHERE m.active = true
-            ORDER BY c.name, m.name
-        ');
+            {$whereClause}
+            ORDER BY
+                CASE m.current_status
+                    WHEN 'offline' THEN 0
+                    WHEN 'unknown' THEN 1
+                    WHEN 'online' THEN 2
+                    ELSE 3
+                END,
+                m.status_since ASC NULLS LAST,
+                c.name ASC,
+                m.name ASC
+        ";
+
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
         $mikrotiks = $stmt->fetchAll();
+
+        // Clientes para o filtro
+        $clients = $db->query('SELECT id, name FROM clients WHERE active = true ORDER BY name')->fetchAll();
+
+        // Resumo
+        $summarySql = "
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE current_status = 'online') AS online,
+                COUNT(*) FILTER (WHERE current_status = 'offline') AS offline,
+                COUNT(*) FILTER (WHERE current_status = 'unknown') AS unknown
+            FROM mikrotiks
+            WHERE active = true
+        ";
+        $summary = $db->query($summarySql)->fetch();
 
         $pageTitle = 'Equipamentos';
         require __DIR__ . '/../../views/layouts/sidebar.php';

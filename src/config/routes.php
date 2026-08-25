@@ -43,6 +43,10 @@ return [
     ['POST', '/mikrotiks/{id}/delete',     'MikrotikController@delete'],
     ['POST', '/mikrotiks/{id}/test',       'MikrotikController@testConnection'],
 
+    // ─── Hosts (Netwatch) ─────────────────────────────────────────────────────
+    ['GET',  '/hosts',                     'HostsController@index'],
+    ['GET',  '/hosts/{id}',                'HostsController@show'],
+
     // ─── Interfaces ───────────────────────────────────────────────────────────
     ['GET',  '/mikrotiks/{id}/interfaces', 'InterfaceController@index'],
     ['GET',  '/interfaces/{id}/traffic',   'InterfaceController@trafficData'],

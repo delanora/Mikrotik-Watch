@@ -2,7 +2,7 @@
 
 ## Visão Geral
 
-O **Mikrotik Watch** é um painel de monitoramento web para gestão de múltiplos equipamentos Mikrotik RouterOS. O sistema coleta métricas de tráfego, status de interfaces e informações de sistema em intervalos configuráveis via cron.
+O **Mikrotik Watch** é um painel de monitoramento web para gestão de múltiplos equipamentos Mikrotik RouterOS. O sistema coleta métricas de saúde, status de hosts via Netwatch e informações de sistema em intervalos configuráveis via cron.
 
 ## Stack
 
@@ -14,12 +14,11 @@ O **Mikrotik Watch** é um painel de monitoramento web para gestão de múltiplo
 | Gráficos | Chart.js via CDN |
 | Autoload | PSR-4 (Composer) |
 | Testes | PHPUnit 11 |
+| Criptografia | libsodium (sodium_crypto_secretbox) |
 
 ## Arquitetura
 
 ### Padrão MVC Simples
-
-O projeto segue um padrão arquitetural simplificado sem framework:
 
 ```
 HTTP Request → index.php (Front Controller) → Router → Controller → Service → Database
@@ -29,56 +28,102 @@ HTTP Request → index.php (Front Controller) → Router → Controller → Serv
 
 ### Camadas
 
-1. **Front Controller** (`src/index.php`): Ponto de entrada único. Recebe todas as requisições HTTP e despacha para o Router.
+1. **Front Controller** (`src/index.php`): Ponto de entrada único. Recebe todas as requisições HTTP, verifica autenticação via AuthMiddleware e despacha para o Router.
 
 2. **Router** (`src/src/Router.php`): Mapeia URIs para controllers/ações. Suporta parâmetros dinâmicos (`{id}`).
 
-3. **Controllers** (`src/src/Controller/`): Lógica de controle. Um controller por domínio (Dashboard, Auth, Mikrotik, etc.).
+3. **Controllers** (`src/src/Controller/`): Lógica de controle. Um controller por domínio:
+   - `DashboardController` — Painel principal com status offline
+   - `AuthController` — Login/logout via sessão PHP
+   - `ClientController` — CRUD de clientes
+   - `ClientHostsController` — Hosts Netwatch por cliente
+   - `MikrotikController` — CRUD de equipamentos Mikrotik
+   - `SettingsController` — Configurações do sistema
 
-4. **Services** (`src/src/Service/`): Lógica de negócio e integração externa. O `MikrotikClient` encapsula a comunicação com a API do RouterOS.
+4. **Services** (`src/src/Service/`): Lógica de negócio e integração externa:
+   - `MikrotikClient` — Cliente API REST do RouterOS (porta 80/443)
+   - `CredentialCrypto` — Criptografia reversível de senhas (libsodium)
+   - `Crypto` — Hash bcrypt para senhas de usuário
+   - `Http/` — Transporte HTTP abstraído (CurlTransport, MockTransport)
 
-5. **Middleware** (`src/src/Middleware/`): Cross-cutting concerns (autenticação, rate limiting, etc.).
+5. **Middleware** (`src/src/Middleware/`): `AuthMiddleware` — Verifica sessão e timeout configurável.
 
-6. **Views** (`src/views/`): Templates PHP para HTML. Layouts em `views/layouts/`, uma pasta por domínio.
+6. **Views** (`src/views/`): Templates PHP para HTML. Layouts em `views/layouts/` (sidebar, header, footer).
 
 7. **Config** (`src/config/`): Configuração centralizada. Loader do `.env`, conexão PDO, e definição de rotas.
 
-### Coleta de Dados (Cron)
-
-Scripts em `src/cron/` são executados via crontab para coletar dados dos equipamentos Mikrotik:
-
-- Conectam via API TCP (porta 8728 padrão)
-- Coletam: interfaces, tráfego, system resource
-- Armazenam no PostgreSQL (tabela `traffic_metrics`)
-- Métricas antigos podem ser agregadas/limpas periodicamente
+8. **Cron** (`src/cron/`): Scripts de coleta periódica com mecanismo de lock.
 
 ### Fluxo de Autenticação
 
 1. Usuário acessa `/login`
-2. POST com credenciais
-3. Password verificado via `password_verify()` (bcrypt)
-4. Sessão criada em `active_sessions`
-5. Cookie de sessão definido
-6. AuthMiddleware verifica sessão em rotas protegidas
+2. POST com email/senha
+3. Password verificado via `password_verify()` (bcrypt, cost 12)
+4. Sessão PHP criada com `user_id`, `user_name`, `login_time`, `last_activity`
+5. AuthMiddleware verifica sessão em rotas protegidas (timeout configurável)
+6. Rotas públicas: apenas `/login` e assets (`/assets/*`)
+
+### Fluxo de Coleta (Cron)
+
+```
+Cron dispara → Acquire Lock (cron_locks) → Para cada Mikrotik ativo:
+  → MikrotikClient.netwatch() → Compara com banco → Sincroniza hosts
+  → Registra eventos de transição (netwatch_events)
+  → Atualiza status do Mikrotik (online/offline)
+→ Release Lock
+```
 
 ## Estrutura do Banco de Dados
 
-### Tabelas Principais
+### Tabelas
 
 | Tabela | Descrição |
 |--------|-----------|
-| `users` | Usuários do sistema (admin, viewer) |
-| `mikrotiks` | Equipamentos cadastrados |
-| `interfaces` | Interfaces de cada equipamento |
-| `traffic_metrics` | Métricas de tráfego (time series) |
-| `active_sessions` | Sessões ativas de login |
-| `activity_log` | Log de ações do sistema |
+| `users` | Usuários do painel (login, senha bcrypt) |
+| `clients` | Clientes cadastrados (agrupam equipamentos) |
+| `mikrotiks` | Equipamentos Mikrotik RouterOS |
+| `health_log` | Série temporal de métricas (CPU, memória, temperatura) |
+| `netwatch_hosts` | Hosts monitorados via Netwatch |
+| `netwatch_events` | Transições de estado dos hosts (up↔down) |
+| `mikrotik_events` | Transições de estado dos equipamentos (online↔offline) |
+| `cron_locks` | Controle de execução dos crons |
+
+### Design de Eventos vs Amostras
+
+O projeto distingue dois tipos de dados temporais:
+
+- **Amostras** (`health_log`): Uma linha por ciclo de coleta, independente de mudança. Usado para gráficos de tendência (CPU, memória, temperatura ao longo do tempo).
+
+- **Eventos** (`netwatch_events`, `mikrotik_events`): Uma linha APENAS quando o status muda (up→down ou down→up). Usado para calcular downtime, exibir timeline de incidentes e cálculo de uptime SLA.
+
+**Decisão de projeto**: Logs de eventos são registrados apenas em transições de estado, não em amostras. Isso minimiza o volume de dados e torna as queries de incidentes mais eficientes.
 
 ### Índices Importantes
 
-- `traffic_metrics(collected_at)`: Para queries temporais
-- `traffic_metrics(interface_id)`: Para tráfego por interface
-- `active_sessions(session_token)`: Para lookup rápido de sessão
+- `health_log(mikrotik_id, collected_at DESC)` — Queries de série temporal
+- `netwatch_events(netwatch_host_id, started_at DESC)` — Timeline por host
+- `mikrotik_events(mikrotik_id, started_at DESC)` — Timeline por equipamento
+- `netwatch_hosts(mikrotik_id)` — Lookup por Mikrotik
+
+## Mecanismo de Lock dos Crons
+
+Os crons utilizam a tabela `cron_locks` para evitar sobreposição de execuções:
+
+```sql
+-- Aquisição de lock (com timeout de 15 minutos)
+UPDATE cron_locks
+SET locked_at = now(), released_at = NULL
+WHERE job_name = 'netwatch_sync'
+  AND (locked_at IS NULL OR released_at IS NOT NULL
+       OR locked_at < now() - INTERVAL '15 minutes')
+```
+
+**Comportamento**:
+- Se o lock está livre (`locked_at IS NULL` ou `released_at IS NOT NULL`): adquire
+- Se o lock está travado há mais de 15 minutos: adquire (timeout de segurança)
+- Se o lock está travado há menos de 15 minutos: não adquire, aborta ciclo
+
+**Jobs conhecidos**: `health_collect`, `netwatch_sync`, `status_check`
 
 ## Endpoints
 
@@ -89,11 +134,29 @@ Scripts em `src/cron/` são executados via crontab para coletar dados dos equipa
 | `GET /` | Redireciona para dashboard |
 | `GET /login` | Formulário de login |
 | `GET /logout` | Encerra sessão |
-| `GET /dashboard` | Painel principal |
-| `GET /mikrotiks` | Lista de equipamentos |
-| `GET /mikrotiks/{id}` | Detalhes de um equipamento |
+| `GET /dashboard` | Painel principal com status offline |
+| `GET /clients` | Lista de clientes |
+| `GET /clients/create` | Formulário de criação |
+| `GET /clients/{id}/edit` | Formulário de edição |
+| `GET /clients/{id}/hosts` | Hosts Netwatch do cliente |
+| `GET /mikrotiks` | Lista de equipamentos (com filtro) |
+| `GET /mikrotiks/create` | Formulário de criação |
+| `GET /mikrotiks/{id}` | Detalhes do equipamento |
 | `GET /mikrotiks/{id}/edit` | Formulário de edição |
 | `GET /settings` | Configurações |
+
+### Ações (POST)
+
+| Rota | Descrição |
+|------|-----------|
+| `POST /login` | Processar login |
+| `POST /clients` | Criar cliente |
+| `POST /clients/{id}` | Atualizar cliente |
+| `POST /clients/{id}/delete` | Excluir cliente |
+| `POST /mikrotiks/store` | Criar equipamento |
+| `POST /mikrotiks/{id}` | Atualizar equipamento |
+| `POST /mikrotiks/{id}/delete` | Excluir equipamento |
+| `POST /mikrotiks/{id}/test` | Testar conexão (JSON) |
 
 ### API (JSON)
 
@@ -103,23 +166,15 @@ Scripts em `src/cron/` são executados via crontab para coletar dados dos equipa
 | `GET /api/mikrotiks` | Lista de equipamentos |
 | `GET /api/traffic/{id}` | Dados de tráfego |
 
-## Convenções de Código
-
-- **PHP**: `declare(strict_types=1)` em todos os arquivos
-- **Namespaces**: `App\` para código, `App\Tests\` para testes
-- **Controllers**: Um arquivo por classe, um método por ação
-- **Services**: Stateless quando possível, métodos estáticos para utilitários
-- **Variáveis**: camelCase para variáveis, PascalCase para classes
-- **Arquivos SQL**: Numerados para controle de ordem de execução
-
 ## Segurança
 
-- Senhas de API Mikrotik criptografadas no banco
-- Senhas de usuário com bcrypt (cost 12)
-- Arquivo `.env` com permissão 600
-- Prepared statements (PDO) contra SQL injection
-- CSRF tokens em formulários (TODO)
-- Rate limiting em endpoints de login (TODO)
+- **Senhas Mikrotik**: Criptografadas com `sodium_crypto_secretbox` (libsodium), armazenadas como BYTEA
+- **Chave de criptografia**: Variável de ambiente `CREDENTIAL_ENCRYPTION_KEY` (32 bytes, base64)
+- **Senhas de usuário**: bcrypt com cost 12
+- **Arquivo `.env`**: Permissão 600, nunca versionado
+- **Prepared statements**: PDO contra SQL injection
+- **Autenticação**: Sessão PHP com timeout configurável
+- **API REST**: HTTP Basic Auth, porta 80/443 (nunca 8728)
 
 ## Ambientes
 
@@ -132,8 +187,44 @@ Scripts em `src/cron/` são executados via crontab para coletar dados dos equipa
 
 ```bash
 # Coleta de dados a cada 5 minutos
-*/5 * * * * cd /var/www/Mikrotik Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
+*/5 * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
+
+# Sincronização Netwatch a cada 5 minutos
+0,5,10,15,20,25,30,35,40,45,50,55 * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1
 ```
+
+## Testes
+
+### Configuração
+
+```bash
+# Criar banco de testes
+sudo ./database/setup_test.sh
+
+# Ou manualmente
+sudo ./tests/setup_test_db.php
+```
+
+### Execução
+
+```bash
+composer test              # Todos os testes
+composer test:unit         # Apenas unitários
+composer test:integration  # Apenas integração
+composer test:coverage     # Com cobertura
+```
+
+### Cobertura
+
+| Suite | Testes | Tipo |
+|-------|--------|------|
+| RouterTest | 8 | Unitário |
+| CredentialCryptoTest | 17 | Unitário |
+| MikrotikClientTest | 24 | Unitário |
+| AuthMiddlewareTest | 15 | Unitário |
+| MikrotikCrudTest | 21 | Unitário |
+| ClientCrudTest | 13 | Integração |
+| NetwatchSyncTest | 10 | Integração |
 
 ## Dependências PHP
 
@@ -142,5 +233,25 @@ Scripts em `src/cron/` são executados via crontab para coletar dados dos equipa
 | `pdo_pgsql` | Conexão PostgreSQL |
 | `curl` | Comunicação com API Mikrotik |
 | `mbstring` | Manipulação de strings UTF-8 |
-| `openssl` | Criptografia de dados sensíveis |
+| `sodium` | Criptografia de senhas (nativo PHP 8.4) |
 | `json` | Serialização JSON para API |
+
+## Próximos Passos
+
+### Prioridade Alta
+
+- [ ] **Alertas via Telegram**: Integração com API do Telegram para envio de alertas quando equipamentos ou hosts ficarem offline. Usar o campo `telegram_group_id` da tabela `clients`.
+- [ ] **Rate limiting**: Implementar rate limiting em endpoints de login para prevenir brute force.
+- [ ] **CSRF tokens**: Adicionar proteção CSRF em formulários.
+
+### Prioridade Média
+
+- [ ] **Dashboard com gráficos**: Adicionar gráficos de tendência de CPU/memória/temperatura via Chart.js.
+- [ ] **Histórico de incidentes**: Página dedicada com timeline de incidents por equipamento/host.
+- [ ] **Exportação de relatórios**: Exportar dados de uptime/down em CSV/PDF.
+
+### Prioridade Baixa
+
+- [ ] **Autenticação via LDAP/AD**: Integração com diretórios corporativos.
+- [ ] **API pública**: Endpoints REST autenticados para integração externa.
+- [ ] **Multi-tenant**: Suporte a múltiplas organizações isoladas.

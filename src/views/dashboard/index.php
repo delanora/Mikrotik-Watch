@@ -198,7 +198,7 @@ function timeAgo(?string $datetime): string
                                 <span class="text-muted"><?= htmlspecialchars($h['client_name'] ?? '—') ?></span>
                             </td>
                             <td>
-                                <a href="/mikrotiks/<?= htmlspecialchars($h['mikrotik_id']) ?>">
+                                <a href="/clients/<?= htmlspecialchars($h['client_id']) ?>/hosts">
                                     <?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?>
                                 </a>
                             </td>

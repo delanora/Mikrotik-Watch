@@ -31,6 +31,7 @@ return [
     ['GET',  '/clients/{id}/edit',         'ClientController@edit'],
     ['POST',  '/clients/{id}',             'ClientController@update'],
     ['POST',  '/clients/{id}/delete',      'ClientController@destroy'],
+    ['GET',  '/clients/{id}/hosts',       'ClientHostsController@index'],
 
     // ─── Equipamentos Mikrotik ─────────────────────────────────────────────────
     ['GET',  '/mikrotiks',                 'MikrotikController@index'],

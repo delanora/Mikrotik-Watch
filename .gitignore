@@ -1,0 +1,31 @@
+# Environment
+.env
+
+# Dependencies
+/vendor/
+composer.lock
+node_modules/
+package.json
+package-lock.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/logs/
+
+# PHPUnit
+/tests/Coverage/
+
+# Temporary
+/tmp/
+/cache/

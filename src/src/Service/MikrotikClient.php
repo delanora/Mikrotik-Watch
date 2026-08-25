@@ -192,6 +192,7 @@ class MikrotikClient
         $headers = [
             'Content-Type' => 'application/json',
             'Accept'       => 'application/json',
+            'Authorization' => 'Basic ' . base64_encode("{$this->username}:{$this->password}"),
         ];
 
         $body = !empty($data) ? json_encode($data, JSON_THROW_ON_ERROR) : null;

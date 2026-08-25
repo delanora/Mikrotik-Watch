@@ -37,9 +37,10 @@ return [
     ['GET',  '/mikrotiks',                 'MikrotikController@index'],
     ['GET',  '/mikrotiks/create',          'MikrotikController@create'],
     ['POST', '/mikrotiks/store',           'MikrotikController@store'],
+    ['POST', '/mikrotiks/test',            'MikrotikController@testConnection'],
     ['GET',  '/mikrotiks/{id}',            'MikrotikController@show'],
     ['GET',  '/mikrotiks/{id}/edit',       'MikrotikController@edit'],
-    ['POST', '/mikrotiks/{id}',             'MikrotikController@update'],
+    ['POST', '/mikrotiks/{id}',            'MikrotikController@update'],
     ['POST', '/mikrotiks/{id}/delete',     'MikrotikController@delete'],
     ['POST', '/mikrotiks/{id}/test',       'MikrotikController@testConnection'],
 

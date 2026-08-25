@@ -52,7 +52,5 @@ return [
     ['GET',  '/api/mikrotiks',             'ApiController@mikrotiks'],
     ['GET',  '/api/traffic/{id}',          'ApiController@trafficData'],
 
-    // ─── Configurações ────────────────────────────────────────────────────────
-    ['GET',  '/settings',                  'SettingsController@index'],
-    ['POST', '/settings/update',           'SettingsController@update'],
+
 ];

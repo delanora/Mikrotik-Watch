@@ -69,9 +69,16 @@ return [
         'password' => env('DB_PASSWORD', ''),
     ],
     'mikrotik' => [
-        'default_port'  => (int) env('MIKROTIK_DEFAULT_PORT', '8728'),
-        'default_user'  => env('MIKROTIK_DEFAULT_API_USER', 'admin'),
-        'default_timeout' => (int) env('MIKROTIK_DEFAULT_API_TIMEOUT', '10'),
+        'default_port'     => (int) env('MIKROTIK_DEFAULT_PORT', '443'),
+        'default_use_ssl'  => filter_var(env('MIKROTIK_DEFAULT_USE_SSL', 'true'), FILTER_VALIDATE_BOOLEAN),
+        'default_verify_ssl' => filter_var(env('MIKROTIK_DEFAULT_VERIFY_SSL', 'true'), FILTER_VALIDATE_BOOLEAN),
+        'default_user'     => env('MIKROTIK_DEFAULT_API_USER', 'admin'),
+        'default_timeout'  => (int) env('MIKROTIK_DEFAULT_API_TIMEOUT', '5'),
+        'allow_self_signed' => filter_var(env('MIKROTIK_ALLOW_SELF_SIGNED', 'false'), FILTER_VALIDATE_BOOLEAN),
+        'credential_key'   => env('CREDENTIAL_ENCRYPTION_KEY', ''),
+    ],
+    'auth' => [
+        'session_timeout' => (int) env('SESSION_TIMEOUT', '3600'),
     ],
     'collect' => [
         'interval' => (int) env('COLLECT_INTERVAL', '5'),

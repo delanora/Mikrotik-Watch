@@ -29,10 +29,27 @@ if ($config['app']['debug']) {
     ini_set('display_errors', '0');
 }
 
+// ─── Rotas protegidas por auth ──────────────────────────────────────────────
+$publicRoutes = [
+    '/login',
+];
+
 // ─── Request Atual ───────────────────────────────────────────────────────────
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri    = rtrim($uri, '/') ?: '/';
+
+// ─── Verificar autenticação ──────────────────────────────────────────────────
+\App\Middleware\AuthMiddleware::setTimeout($config['auth']['session_timeout'] ?? 3600);
+
+if (!in_array($uri, $publicRoutes, true)) {
+    // Verificar se é um asset público
+    $isAsset = str_starts_with($uri, '/assets/') || str_ends_with($uri, '.css') || str_ends_with($uri, '.js');
+
+    if (!$isAsset) {
+        \App\Middleware\AuthMiddleware::requireAuth();
+    }
+}
 
 // ─── Rotas ───────────────────────────────────────────────────────────────────
 $routes = require __DIR__ . '/config/routes.php';

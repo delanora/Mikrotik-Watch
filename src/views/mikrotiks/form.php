@@ -54,16 +54,13 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
 
             <!-- Cliente -->
             <div class="form-group">
-                <label for="client_id">Cliente *</label>
-                <select id="client_id" name="client_id" required>
-                    <option value="">Selecione um cliente...</option>
-                    <?php foreach ($clients as $client): ?>
-                        <option value="<?= htmlspecialchars($client['id']) ?>"
-                            <?= (($mikrotik['client_id'] ?? '') === $client['id']) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($client['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <label for="client_search">Cliente *</label>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="client_search" placeholder="Buscar cliente..."
+                        value="<?= htmlspecialchars($mikrotik['client_name'] ?? '') ?>" autocomplete="off" required>
+                    <input type="hidden" id="client_id" name="client_id" value="<?= htmlspecialchars($mikrotik['client_id'] ?? '') ?>" required>
+                    <div class="autocomplete-list" id="client-list"></div>
+                </div>
             </div>
 
             <!-- Nome -->
@@ -208,6 +205,8 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
 </div>
 
 <script>
+var clientsData = <?= json_encode(array_map(fn($c) => ['id' => $c['id'], 'name' => $c['name']], $clients), JSON_UNESCAPED_UNICODE) ?>;
+
 function toggleDeviceType() {
     var isMikrotik = document.querySelector('input[name="device_type"]:checked').value === 'mikrotik';
     var fields = document.getElementById('mikrotik-fields');
@@ -238,6 +237,58 @@ function toggleDeviceType() {
 
 document.addEventListener('DOMContentLoaded', function() {
     toggleDeviceType();
+
+    // ─── Client Autocomplete ───
+    const searchInput = document.getElementById('client_search');
+    const hiddenInput = document.getElementById('client_id');
+    const listEl = document.getElementById('client-list');
+    let selectedId = hiddenInput.value;
+
+    function renderList(query) {
+        var q = (query || '').toLowerCase();
+        var filtered = q ? clientsData.filter(function(c) { return c.name.toLowerCase().indexOf(q) !== -1; }) : clientsData;
+        if (filtered.length === 0) {
+            listEl.innerHTML = '<div class="autocomplete-empty">Nenhum cliente encontrado</div>';
+        } else {
+            listEl.innerHTML = filtered.map(function(c) {
+                return '<div class="autocomplete-item' + (c.id === selectedId ? ' selected' : '') + '" data-id="' + c.id + '" data-name="' + c.name.replace(/"/g, '&quot;') + '">' + c.name + '</div>';
+            }).join('');
+        }
+        listEl.style.display = 'block';
+    }
+
+    searchInput.addEventListener('input', function() {
+        hiddenInput.value = '';
+        selectedId = '';
+        searchInput.removeAttribute('readonly');
+        renderList(this.value);
+    });
+
+    searchInput.addEventListener('focus', function() {
+        renderList(this.value);
+    });
+
+    listEl.addEventListener('click', function(e) {
+        var item = e.target.closest('.autocomplete-item');
+        if (!item) return;
+        searchInput.value = item.dataset.name;
+        hiddenInput.value = item.dataset.id;
+        selectedId = item.dataset.id;
+        listEl.style.display = 'none';
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.autocomplete-wrapper')) {
+            listEl.style.display = 'none';
+        }
+    });
+
+    // If editing, show selected client name
+    if (selectedId) {
+        var match = clientsData.find(function(c) { return c.id === selectedId; });
+        if (match) searchInput.value = match.name;
+    }
+
     const btnTest = document.getElementById('btn-test-connection');
     const resultDiv = document.getElementById('test-result');
 
@@ -382,6 +433,45 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 12px;
     color: var(--text-muted);
     line-height: 1.3;
+}
+
+/* Client Autocomplete */
+.autocomplete-wrapper {
+    position: relative;
+}
+
+.autocomplete-list {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 50;
+    box-shadow: var(--shadow-lg);
+}
+
+.autocomplete-item {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+    background: var(--accent-bg);
+    color: var(--accent);
+}
+
+.autocomplete-empty {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
 }
 
 /* Form Row 2 columns */

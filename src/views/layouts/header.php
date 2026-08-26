@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $pageTitle ?? 'Mikrotik Watch' ?> - Mikrotik Watch</title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+
     <!-- CSS -->
     <link rel="stylesheet" href="/assets/css/style.css">
 

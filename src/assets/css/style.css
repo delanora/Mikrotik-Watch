@@ -849,6 +849,22 @@ small { color: var(--text-muted); }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 /* ============================================
+   Footer
+   ============================================ */
+.footer {
+    text-align: center;
+    padding: 20px 36px;
+    color: var(--text-muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border-subtle);
+    margin-left: var(--sidebar-width);
+}
+
+.footer p {
+    margin: 0;
+}
+
+/* ============================================
    Responsive
    ============================================ */
 @media (max-width: 768px) {

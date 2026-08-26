@@ -170,11 +170,17 @@ try {
 
             try {
                 $health = $client->systemHealth();
-                // systemHealth retorna array de objetos ou array único
-                if (!empty($health)) {
-                    $healthData = is_array($health[0] ?? null) ? $health[0] : $health;
-                    $temperature = isset($healthData['temperature']) ? (float) $healthData['temperature'] : null;
-                    $voltage = isset($healthData['voltage']) ? (float) $healthData['voltage'] : null;
+                // systemHealth retorna array de [{name, type, value}, ...]
+                foreach ($health as $item) {
+                    $itemName = $item['name'] ?? '';
+                    $itemValue = $item['value'] ?? '';
+                    if ($itemName === 'cpu-temperature' && is_numeric($itemValue)) {
+                        $temperature = (float) $itemValue;
+                    } elseif ($itemName === 'temperature' && is_numeric($itemValue)) {
+                        $temperature = (float) $itemValue;
+                    } elseif ($itemName === 'voltage' && is_numeric($itemValue)) {
+                        $voltage = (float) $itemValue;
+                    }
                 }
             } catch (\Throwable $e) {
                 // Alguns modelos não reportam health — ignora silenciosamente

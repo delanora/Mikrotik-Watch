@@ -48,6 +48,11 @@ return [
     ['GET',  '/hosts',                     'HostsController@index'],
     ['GET',  '/hosts/{id}',                'HostsController@show'],
 
+    // ─── Usuários ─────────────────────────────────────────────────────────────
+    ['GET',  '/users',                     'UserController@index'],
+    ['GET',  '/users/create',              'UserController@create'],
+    ['POST', '/users/store',               'UserController@store'],
+
     // ─── API (para AJAX/JavaScript) ───────────────────────────────────────────
     ['GET',  '/api/stats',                 'ApiController@stats'],
     ['GET',  '/api/mikrotiks',             'ApiController@mikrotiks'],

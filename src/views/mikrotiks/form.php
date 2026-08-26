@@ -97,14 +97,7 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
             <div class="form-group">
                 <label>Este equipamento é Mikrotik?</label>
                 <div class="device-type-selector">
-                    <input type="radio" name="device_type" id="device_type_mikrotik" value="mikrotik"
-                        <?= ($mikrotik['device_type'] ?? 'mikrotik') === 'mikrotik' ? 'checked' : '' ?>
-                        onchange="toggleDeviceType()" style="position: absolute; opacity: 0; pointer-events: none;">
-                    <input type="radio" name="device_type" id="device_type_ping" value="ping"
-                        <?= ($mikrotik['device_type'] ?? '') === 'ping' ? 'checked' : '' ?>
-                        onchange="toggleDeviceType()" style="position: absolute; opacity: 0; pointer-events: none;">
-
-                    <label for="device_type_mikrotik" class="device-type-card">
+                    <div class="device-type-card <?= ($mikrotik['device_type'] ?? 'mikrotik') === 'mikrotik' ? 'active' : '' ?>" onclick="document.getElementById('device_type_mikrotik').checked=true; toggleDeviceType();">
                         <div class="device-type-card-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
                         </div>
@@ -112,9 +105,8 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
                             <div class="device-type-card-title">Mikrotik RouterOS</div>
                             <div class="device-type-card-desc">Coleta métricas via API REST (CPU, memória, temperatura)</div>
                         </div>
-                    </label>
-
-                    <label for="device_type_ping" class="device-type-card">
+                    </div>
+                    <div class="device-type-card <?= ($mikrotik['device_type'] ?? '') === 'ping' ? 'active' : '' ?>" onclick="document.getElementById('device_type_ping').checked=true; toggleDeviceType();">
                         <div class="device-type-card-icon">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                         </div>
@@ -122,7 +114,13 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
                             <div class="device-type-card-title">Monitoramento por Ping</div>
                             <div class="device-type-card-desc">Verificação de disponibilidade via ICMP (ping)</div>
                         </div>
-                    </label>
+                    </div>
+                    <input type="radio" name="device_type" id="device_type_mikrotik" value="mikrotik"
+                        <?= ($mikrotik['device_type'] ?? 'mikrotik') === 'mikrotik' ? 'checked' : '' ?>
+                        onchange="toggleDeviceType()" style="display: none;">
+                    <input type="radio" name="device_type" id="device_type_ping" value="ping"
+                        <?= ($mikrotik['device_type'] ?? '') === 'ping' ? 'checked' : '' ?>
+                        onchange="toggleDeviceType()" style="display: none;">
                 </div>
             </div>
 
@@ -216,8 +214,16 @@ function toggleDeviceType() {
     var port = document.getElementById('port');
     var username = document.getElementById('username');
     var password = document.getElementById('password');
+    var cards = document.querySelectorAll('.device-type-card');
 
     fields.style.display = isMikrotik ? '' : 'none';
+
+    cards.forEach(function(card) { card.classList.remove('active'); });
+    if (isMikrotik) {
+        cards[0].classList.add('active');
+    } else {
+        cards[1].classList.add('active');
+    }
 
     if (!isMikrotik) {
         port.removeAttribute('required');
@@ -317,22 +323,19 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Selected state */
-input#device_type_mikrotik:checked ~ label[for="device_type_mikrotik"],
-input#device_type_ping:checked ~ label[for="device_type_ping"] {
+.device-type-card.active {
     border-color: var(--accent);
     background: var(--accent-bg);
 }
 
-input#device_type_mikrotik:checked ~ label[for="device_type_mikrotik"] .device-type-card-icon,
-input#device_type_ping:checked ~ label[for="device_type_ping"] .device-type-card-icon {
+.device-type-card.active .device-type-card-icon {
     background: var(--accent-bg);
     border-color: var(--accent-border);
     color: var(--accent);
 }
 
 /* Checkmark on selected */
-input#device_type_mikrotik:checked ~ label[for="device_type_mikrotik"]:after,
-input#device_type_ping:checked ~ label[for="device_type_ping"]:after {
+.device-type-card.active::after {
     content: '';
     position: absolute;
     top: 50%;

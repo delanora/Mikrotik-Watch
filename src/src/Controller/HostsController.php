@@ -112,6 +112,23 @@ class HostsController
         $stmt->execute([':mikrotik_id' => $id, ':limit' => $perPage, ':offset' => $offset]);
         $hosts = $stmt->fetchAll();
 
+        // Totais gerais (para os cards de resumo)
+        $stmt = $db->prepare('
+            SELECT
+                COUNT(*) AS total_hosts,
+                COUNT(*) FILTER (WHERE current_status = \'up\') AS up_hosts,
+                COUNT(*) FILTER (WHERE current_status = \'down\') AS down_hosts,
+                COUNT(*) FILTER (WHERE current_status != \'up\' AND current_status != \'down\') AS unknown_hosts
+            FROM netwatch_hosts
+            WHERE mikrotik_id = :mikrotik_id AND active = true
+        ');
+        $stmt->execute([':mikrotik_id' => $id]);
+        $counts = $stmt->fetch();
+        $totalHostsAll = (int) $counts['total_hosts'];
+        $upHostsAll = (int) $counts['up_hosts'];
+        $downHostsAll = (int) $counts['down_hosts'];
+        $unknownHostsAll = (int) $counts['unknown_hosts'];
+
         $pageTitle = 'Hosts — ' . $mikrotik['name'];
         require __DIR__ . '/../../views/layouts/sidebar.php';
         require __DIR__ . '/../../views/hosts/show.php';

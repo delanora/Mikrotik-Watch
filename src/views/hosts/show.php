@@ -2,7 +2,14 @@
 declare(strict_types=1);
 /**
  * @var array $mikrotik
- * @var array $hosts
+ * @var array $hosts          Hosts da página atual
+ * @var int   $totalHosts     Total de hosts nesta página
+ * @var int   $totalPages     Total de páginas
+ * @var int   $page           Página atual
+ * @var int   $totalHostsAll  Total geral de hosts
+ * @var int   $upHostsAll     Total geral up
+ * @var int   $downHostsAll   Total geral down
+ * @var int   $unknownHostsAll Total geral unknown
  */
 
 function timeAgo(?string $datetime): string
@@ -50,27 +57,13 @@ function timeAgo(?string $datetime): string
 
 <!-- ─── Resumo ────────────────────────────────────────────────────────────── -->
 
-<?php
-$total = count($hosts);
-$up = 0;
-$down = 0;
-$unknown = 0;
-foreach ($hosts as $h) {
-    match ($h['current_status']) {
-        'up' => $up++,
-        'down' => $down++,
-        default => $unknown++,
-    };
-}
-?>
-
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon icon-accent">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
         </div>
         <div class="stat-info">
-            <h3><?= $total ?></h3>
+            <h3><?= $totalHostsAll ?></h3>
             <p>Total Hosts</p>
         </div>
     </div>
@@ -79,7 +72,7 @@ foreach ($hosts as $h) {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <div class="stat-info">
-            <h3 style="color: var(--success);"><?= $up ?></h3>
+            <h3 style="color: var(--success);"><?= $upHostsAll ?></h3>
             <p>Up</p>
         </div>
     </div>
@@ -88,17 +81,17 @@ foreach ($hosts as $h) {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         </div>
         <div class="stat-info">
-            <h3 style="color: var(--danger);"><?= $down ?></h3>
+            <h3 style="color: var(--danger);"><?= $downHostsAll ?></h3>
             <p>Down</p>
         </div>
     </div>
-    <?php if ($unknown > 0): ?>
+    <?php if ($unknownHostsAll > 0): ?>
     <div class="stat-card">
         <div class="stat-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
         </div>
         <div class="stat-info">
-            <h3><?= $unknown ?></h3>
+            <h3><?= $unknownHostsAll ?></h3>
             <p>Desconhecido</p>
         </div>
     </div>
@@ -108,23 +101,33 @@ foreach ($hosts as $h) {
 <!-- ─── Tabela de Hosts ───────────────────────────────────────────────────── -->
 
 <div class="card">
-    <div class="card-header">
-        <h2>
+    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="margin: 0;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
             Hosts Netwatch
-            <?php if ($total > 0): ?>
-                <span class="badge badge-secondary" style="margin-left: 4px;"><?= $total ?></span>
+            <?php if ($totalHostsAll > 0): ?>
+                <span class="badge badge-secondary" style="margin-left: 4px;"><?= $totalHostsAll ?></span>
             <?php endif; ?>
         </h2>
+        <div style="position: relative;">
+            <input
+                type="text"
+                id="host-search"
+                placeholder="Buscar host..."
+                autocomplete="off"
+                style="padding: 6px 12px 6px 32px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 13px; width: 220px;"
+            >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
     </div>
     <div class="card-body" style="padding: 0;">
-        <?php if (empty($hosts)): ?>
+        <?php if (empty($hosts) && $page === 1): ?>
             <div class="alert alert-warning" style="margin: 24px;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                 <div>Nenhum host Netwatch configurado neste equipamento. Os hosts serão sincronizados automaticamente pelo cron.</div>
             </div>
         <?php else: ?>
-            <table class="table">
+            <table class="table" id="hosts-table">
                 <thead>
                     <tr>
                         <th>Endereço</th>
@@ -137,7 +140,7 @@ foreach ($hosts as $h) {
                 </thead>
                 <tbody>
                     <?php foreach ($hosts as $h): ?>
-                        <tr>
+                        <tr data-search="<?= htmlspecialchars(strtolower($h['host_address'] . ' ' . ($h['comment'] ?? ''))) ?>">
                             <td>
                                 <code><?= htmlspecialchars($h['host_address']) ?></code>
                             </td>
@@ -180,28 +183,65 @@ foreach ($hosts as $h) {
             </table>
 
             <?php if ($totalPages > 1): ?>
-                <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px;">
-                    <?php if ($page > 1): ?>
-                        <a href="?page=<?= $page - 1 ?>" class="btn btn-secondary" style="padding: 6px 12px;">
-                            ← Anterior
-                        </a>
-                    <?php endif; ?>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-top: 1px solid var(--border);">
+                    <!-- Navegação -->
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <?php if ($page > 1): ?>
+                            <a href="?page=<?= $page - 1 ?>" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                                ← Anterior
+                            </a>
+                        <?php endif; ?>
 
-                    <span style="color: var(--text-muted); font-size: 13px;">
-                        Página <?= $page ?> de <?= $totalPages ?>
-                        <span style="margin-left: 8px;">
-                            (<?= $totalHosts ?> hosts)
+                        <span style="color: var(--text-muted); font-size: 13px;">
+                            Página <?= $page ?> de <?= $totalPages ?>
                         </span>
-                    </span>
 
-                    <?php if ($page < $totalPages): ?>
-                        <a href="?page=<?= $page + 1 ?>" class="btn btn-secondary" style="padding: 6px 12px;">
-                            Próxima →
-                        </a>
-                    <?php endif; ?>
+                        <?php if ($page < $totalPages): ?>
+                            <a href="?page=<?= $page + 1 ?>" class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;">
+                                Próxima →
+                            </a>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Seletor de página -->
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <label for="page-jump" style="color: var(--text-muted); font-size: 12px;">Ir para:</label>
+                        <select id="page-jump" onchange="window.location.href='?page='+this.value" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 12px;">
+                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <option value="<?= $i ?>" <?= $i === $page ? 'selected' : '' ?>><?= $i ?></option>
+                            <?php endfor; ?>
+                        </select>
+                        <span style="color: var(--text-muted); font-size: 12px;">de <?= $totalPages ?></span>
+                    </div>
                 </div>
             <?php endif; ?>
 
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var searchInput = document.getElementById('host-search');
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', function() {
+        var query = this.value.toLowerCase().trim();
+        var rows = document.querySelectorAll('#hosts-table tbody tr');
+
+        rows.forEach(function(row) {
+            var text = row.getAttribute('data-search') || '';
+            row.style.display = (query === '' || text.indexOf(query) !== -1) ? '' : 'none';
+        });
+    });
+
+    // Focar com Ctrl+K ou /
+    document.addEventListener('keydown', function(e) {
+        if ((e.key === '/' && document.activeElement.tagName !== 'INPUT') ||
+            (e.ctrlKey && e.key === 'k')) {
+            e.preventDefault();
+            searchInput.focus();
+        }
+    });
+});
+</script>

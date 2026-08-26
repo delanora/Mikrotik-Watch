@@ -387,8 +387,8 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Form Row 2 columns */
 .form-row-2 {
     display: grid;
-    grid-template-columns: 140px 1fr;
-    gap: 16px;
+    grid-template-columns: 120px 1fr;
+    gap: 20px;
     align-items: end;
 }
 
@@ -400,5 +400,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .form-group-checkbox .checkbox-label {
     margin-bottom: 0;
+    white-space: nowrap;
 }
 </style>

@@ -29,6 +29,7 @@ class CollectController
         $scripts = [
             'collect'          => __DIR__ . '/../../cron/collect.php',
             'collect_netwatch' => __DIR__ . '/../../cron/collect_netwatch.php',
+            'collect_ping'     => __DIR__ . '/../../cron/collect_ping.php',
         ];
 
         $results = [];

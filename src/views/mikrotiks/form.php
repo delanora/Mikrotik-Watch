@@ -106,18 +106,22 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
 
                     <label for="device_type_mikrotik" class="device-type-card">
                         <div class="device-type-card-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
                         </div>
-                        <div class="device-type-card-title">Mikrotik RouterOS</div>
-                        <div class="device-type-card-desc">Coleta métricas via API REST (CPU, memória, temperatura)</div>
+                        <div class="device-type-card-text">
+                            <div class="device-type-card-title">Mikrotik RouterOS</div>
+                            <div class="device-type-card-desc">Coleta métricas via API REST (CPU, memória, temperatura)</div>
+                        </div>
                     </label>
 
                     <label for="device_type_ping" class="device-type-card">
                         <div class="device-type-card-icon">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
                         </div>
-                        <div class="device-type-card-title">Monitoramento por Ping</div>
-                        <div class="device-type-card-desc">Verificação de disponibilidade via ICMP (ping)</div>
+                        <div class="device-type-card-text">
+                            <div class="device-type-card-title">Monitoramento por Ping</div>
+                            <div class="device-type-card-desc">Verificação de disponibilidade via ICMP (ping)</div>
+                        </div>
                     </label>
                 </div>
             </div>
@@ -295,13 +299,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 .device-type-card {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding: 28px 20px 24px;
+    gap: 14px;
+    text-align: left;
+    padding: 14px 18px;
     background: var(--bg-secondary);
     border: 2px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
@@ -331,8 +335,9 @@ input#device_type_mikrotik:checked ~ label[for="device_type_mikrotik"]:after,
 input#device_type_ping:checked ~ label[for="device_type_ping"]:after {
     content: '';
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
     width: 18px;
     height: 18px;
     background: var(--accent);
@@ -344,30 +349,36 @@ input#device_type_ping:checked ~ label[for="device_type_ping"]:after {
 }
 
 .device-type-card-icon {
-    width: 52px;
-    height: 52px;
-    border-radius: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     color: var(--text-muted);
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 14px;
+    flex-shrink: 0;
     transition: all 0.2s;
 }
 
+.device-type-card-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
 .device-type-card-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-primary);
-    margin-bottom: 6px;
 }
 
 .device-type-card-desc {
     font-size: 12px;
     color: var(--text-muted);
-    line-height: 1.4;
+    line-height: 1.3;
 }
 
 /* Form Row 2 columns */

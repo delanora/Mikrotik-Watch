@@ -170,8 +170,10 @@ a:hover { color: var(--accent-hover); }
 }
 
 .btn-logout {
-    display: block;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
     padding: 9px;
     background: transparent;
     border: 1px solid var(--border);
@@ -853,11 +855,11 @@ small { color: var(--text-muted); }
    ============================================ */
 .footer {
     text-align: center;
-    padding: 20px 36px;
+    padding: 20px 0;
+    margin-top: 24px;
     color: var(--text-muted);
     font-size: 12px;
     border-top: 1px solid var(--border-subtle);
-    margin-left: var(--sidebar-width);
 }
 
 .footer p {

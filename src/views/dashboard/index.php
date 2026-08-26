@@ -198,16 +198,16 @@ function timeAgo(?string $datetime): string
                                 <span class="text-muted"><?= htmlspecialchars($h['client_name'] ?? '—') ?></span>
                             </td>
                             <td>
-                                <a href="/clients/<?= htmlspecialchars($h['client_id']) ?>/hosts">
-                                    <?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?>
-                                </a>
+                                <strong><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></strong>
                             </td>
                             <td>
                                 <code><?= htmlspecialchars($h['host_address']) ?></code>
                             </td>
                             <td>
                                 <?php if (!empty($h['comment'])): ?>
-                                    <span class="text-muted"><?= htmlspecialchars($h['comment']) ?></span>
+                                    <span style="background: var(--warning-bg); color: var(--warning); padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                                        <?= htmlspecialchars($h['comment']) ?>
+                                    </span>
                                 <?php else: ?>
                                     <span class="text-muted">—</span>
                                 <?php endif; ?>

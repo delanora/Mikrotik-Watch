@@ -121,7 +121,7 @@ class MikrotikController
         $name = trim($_POST['name'] ?? '');
         $host = trim($_POST['host'] ?? '');
         $port = (int) ($_POST['port'] ?? 443);
-        $useSsl = isset($_POST['use_ssl']);
+        $useSsl = (int) isset($_POST['use_ssl']);
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
 
@@ -238,7 +238,7 @@ class MikrotikController
         $name = trim($_POST['name'] ?? '');
         $host = trim($_POST['host'] ?? '');
         $port = (int) ($_POST['port'] ?? 443);
-        $useSsl = isset($_POST['use_ssl']);
+        $useSsl = (int) isset($_POST['use_ssl']);
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
 

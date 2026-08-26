@@ -93,6 +93,40 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
                 >
             </div>
 
+            <!-- Tipo de dispositivo -->
+            <div class="form-group">
+                <label>Este equipamento é Mikrotik?</label>
+                <div style="display: flex; gap: 16px; align-items: center; margin-top: 6px;">
+                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input
+                            type="radio"
+                            name="device_type"
+                            value="mikrotik"
+                            <?= ($mikrotik['device_type'] ?? 'mikrotik') === 'mikrotik' ? 'checked' : '' ?>
+                            onchange="toggleDeviceType()"
+                        >
+                        Sim (Mikrotik RouterOS)
+                    </label>
+                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                        <input
+                            type="radio"
+                            name="device_type"
+                            value="ping"
+                            <?= ($mikrotik['device_type'] ?? '') === 'ping' ? 'checked' : '' ?>
+                            onchange="toggleDeviceType()"
+                        >
+                        Não (monitorar por Ping)
+                    </label>
+                </div>
+                <small style="color: var(--text-muted);">
+                    Equipamentos Mikrotik usam a API REST para coletar métricas detalhadas.
+                    Equipamentos não-Mikrotik são monitorados apenas por ICMP (ping).
+                </small>
+            </div>
+
+            <!-- Campos específicos Mikrotik -->
+            <div id="mikrotik-fields" style="<?= ($mikrotik['device_type'] ?? 'mikrotik') === 'ping' ? 'display: none;' : '' ?>">
+
             <!-- Porta + SSL -->
             <div style="display: grid; grid-template-columns: 120px 1fr; gap: 16px;">
                 <div class="form-group">
@@ -159,6 +193,8 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
             <!-- Resultado do teste de conexão -->
             <div id="test-result" style="display: none; margin-bottom: 20px;"></div>
 
+            </div><!-- /mikrotik-fields -->
+
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
@@ -172,7 +208,28 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
 </div>
 
 <script>
+function toggleDeviceType() {
+    var isMikrotik = document.querySelector('input[name="device_type"]:checked').value === 'mikrotik';
+    var fields = document.getElementById('mikrotik-fields');
+    var port = document.getElementById('port');
+    var username = document.getElementById('username');
+    var password = document.getElementById('password');
+
+    fields.style.display = isMikrotik ? '' : 'none';
+
+    if (!isMikrotik) {
+        port.removeAttribute('required');
+        username.removeAttribute('required');
+        password.removeAttribute('required');
+    } else {
+        port.setAttribute('required', 'required');
+        username.setAttribute('required', 'required');
+        password.setAttribute('required', 'required');
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    toggleDeviceType();
     const btnTest = document.getElementById('btn-test-connection');
     const resultDiv = document.getElementById('test-result');
 

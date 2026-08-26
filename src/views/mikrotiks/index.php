@@ -203,13 +203,18 @@ function tempDisplay(?string $temp): string
                                 <a href="/mikrotiks/<?= htmlspecialchars($m['id']) ?>" style="font-weight: 600;">
                                     <?= htmlspecialchars($m['name']) ?>
                                 </a>
+                                <?php if (($m['device_type'] ?? 'mikrotik') === 'ping'): ?>
+                                    <span class="badge badge-secondary" style="font-size: 10px; padding: 1px 6px; margin-left: 4px;">Ping</span>
+                                <?php endif; ?>
                                 <br>
                                 <code style="font-size: 11px;"><?= htmlspecialchars($m['host']) ?></code>
-                                <?php if ((int) $m['port'] !== 443): ?>
-                                    <span class="text-muted" style="font-size: 11px;">:<?= (int) $m['port'] ?></span>
-                                <?php endif; ?>
-                                <?php if (!(bool) $m['use_ssl']): ?>
-                                    <span class="badge badge-warning" style="font-size: 10px; padding: 1px 6px; margin-left: 4px;">HTTP</span>
+                                <?php if (($m['device_type'] ?? 'mikrotik') === 'mikrotik'): ?>
+                                    <?php if ((int) ($m['port'] ?? 443) !== 443): ?>
+                                        <span class="text-muted" style="font-size: 11px;">:<?= (int) $m['port'] ?></span>
+                                    <?php endif; ?>
+                                    <?php if (!(bool) ($m['use_ssl'] ?? true)): ?>
+                                        <span class="badge badge-warning" style="font-size: 10px; padding: 1px 6px; margin-left: 4px;">HTTP</span>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                             <td>
@@ -224,16 +229,28 @@ function tempDisplay(?string $temp): string
                                 <span class="badge <?= $statusClass ?>"><?= $status ?></span>
                             </td>
                             <td>
-                                <?= cpuBadge($m['last_cpu_load'] !== null ? (int) $m['last_cpu_load'] : null) ?>
+                                <?php if (($m['device_type'] ?? 'mikrotik') === 'mikrotik'): ?>
+                                    <?= cpuBadge($m['last_cpu_load'] !== null ? (int) $m['last_cpu_load'] : null) ?>
+                                <?php else: ?>
+                                    <span class="text-muted">N/A</span>
+                                <?php endif; ?>
                             </td>
                             <td>
-                                <?= memBadge(
-                                    $m['last_memory_free'] !== null ? (int) $m['last_memory_free'] : null,
-                                    $m['last_memory_total'] !== null ? (int) $m['last_memory_total'] : null
-                                ) ?>
+                                <?php if (($m['device_type'] ?? 'mikrotik') === 'mikrotik'): ?>
+                                    <?= memBadge(
+                                        $m['last_memory_free'] !== null ? (int) $m['last_memory_free'] : null,
+                                        $m['last_memory_total'] !== null ? (int) $m['last_memory_total'] : null
+                                    ) ?>
+                                <?php else: ?>
+                                    <span class="text-muted">N/A</span>
+                                <?php endif; ?>
                             </td>
                             <td>
-                                <?= tempDisplay($m['last_temperature']) ?>
+                                <?php if (($m['device_type'] ?? 'mikrotik') === 'mikrotik'): ?>
+                                    <?= tempDisplay($m['last_temperature']) ?>
+                                <?php else: ?>
+                                    <span class="text-muted">N/A</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <span class="text-muted" style="font-size: 12px;">

@@ -110,6 +110,28 @@ class UserController
     }
 
     /**
+     * Exclui um usuário.
+     */
+    public function delete(): void
+    {
+        $id = $this->extractId();
+        $db = $this->getDb();
+
+        // Não permitir excluir a si mesmo
+        $currentUserId = $_SESSION['user_id'] ?? '';
+        if ($id === $currentUserId) {
+            header('Location: /users');
+            exit;
+        }
+
+        $stmt = $db->prepare('DELETE FROM users WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+
+        header('Location: /users');
+        exit;
+    }
+
+    /**
      * Valida os dados do usuário.
      */
     private function validate(string $name, string $email, string $password, string $role): array
@@ -140,6 +162,20 @@ class UserController
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private function extractId(): string
+    {
+        $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $uri = rtrim($uri, '/');
+
+        if (preg_match('#/users/([0-9a-f-]{36})(?:/|$)#i', $uri, $matches)) {
+            return $matches[1];
+        }
+
+        http_response_code(400);
+        echo 'ID inválido.';
+        exit;
+    }
 
     private function getDb(): \PDO
     {

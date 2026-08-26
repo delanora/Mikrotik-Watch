@@ -114,7 +114,7 @@ try {
     $stmt = $db->query('
         SELECT id, name, host, port, use_ssl, username, password_encrypted, current_status
         FROM mikrotiks
-        WHERE active = true
+        WHERE active = true AND device_type = \'mikrotik\'
         ORDER BY name
     ');
     $mikrotiks = $stmt->fetchAll();

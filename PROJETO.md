@@ -2,7 +2,10 @@
 
 ## Visão Geral
 
-O **Mikrotik Watch** é um painel de monitoramento web para gestão de múltiplos equipamentos Mikrotik RouterOS. O sistema coleta métricas de saúde, status de hosts via Netwatch e informações de sistema em intervalos configuráveis via cron.
+O **Mikrotik Watch** é um painel de monitoramento web para gestão de múltiplos equipamentos de rede. O sistema suporta dois tipos de dispositivos:
+
+- **Mikrotik (device_type = 'mikrotik')**: Coleta métricas detalhadas via API REST (CPU, memória, temperatura, hosts Netwatch)
+- **Ping (device_type = 'ping')**: Monitoramento básico via ICMP ping, sem acesso à API
 
 ## Stack
 
@@ -128,7 +131,7 @@ WHERE job_name = 'netwatch_sync'
 - Se o lock está travado há mais de 15 minutos: adquire (timeout de segurança)
 - Se o lock está travado há menos de 15 minutos: não adquire, aborta ciclo
 
-**Jobs conhecidos**: `health_collect`, `netwatch_sync`
+**Jobs conhecidos**: `health_collect`, `netwatch_sync`, `ping_check`
 
 ## Endpoints
 
@@ -191,13 +194,24 @@ WHERE job_name = 'netwatch_sync'
 
 ## Cron Jobs
 
+### Equipamentos Mikrotik (device_type = 'mikrotik')
+
 ```bash
-# Coleta de métricas (a cada 1 minuto)
+# Coleta de métricas (a cada 1 minuto) — apenas Mikrotiks
 * * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
 
-# Sincronização Netwatch (a cada 1 minuto)
+# Sincronização Netwatch (a cada 1 minuto) — apenas Mikrotiks
 * * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1
 ```
+
+### Equipamentos Ping (device_type = 'ping')
+
+```bash
+# Verificação por ICMP (a cada 5 minutos) — apenas dispositivos ping
+*/5 * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_ping.php >> /var/log/mikrotik-watch/cron.log 2>&1
+```
+
+**Importante**: Os crons de 1 minuto processam APENAS equipamentos com `device_type = 'mikrotik'`. O cron de ping processa APENAS equipamentos com `device_type = 'ping'`. Nunca misturam.
 
 ## Testes
 
@@ -232,6 +246,7 @@ composer test:coverage     # Com cobertura
 | ClientCrudTest | 13 | Integração |
 | MikrotikCrudIntegrationTest | 8 | Integração |
 | NetwatchSyncTest | 10 | Integração |
+| PingDeviceTest | 5 | Integração |
 
 ## Dependências PHP
 

@@ -43,6 +43,7 @@ declare(strict_types=1);
                         <th>E-mail</th>
                         <th>Papel</th>
                         <th>Criado em</th>
+                        <th style="text-align: right;">Ações</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -65,6 +66,17 @@ declare(strict_types=1);
                                 <span class="text-muted" style="font-size: 12px;">
                                     <?= date('d/m/Y H:i', strtotime($u['created_at'])) ?>
                                 </span>
+                            </td>
+                            <td style="text-align: right;">
+                                <?php if ($u['id'] !== ($_SESSION['user_id'] ?? '')): ?>
+                                    <form method="POST" action="/users/<?= htmlspecialchars($u['id']) ?>/delete" style="display: inline;"
+                                          onsubmit="return confirm('Excluir este usuário? Esta ação não pode ser desfeita.');">
+                                        <?= \App\Middleware\CsrfMiddleware::field() ?>
+                                        <button type="submit" class="btn btn-ghost btn-danger" title="Excluir">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>

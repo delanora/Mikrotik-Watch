@@ -52,6 +52,7 @@ return [
     ['GET',  '/users',                     'UserController@index'],
     ['GET',  '/users/create',              'UserController@create'],
     ['POST', '/users/store',               'UserController@store'],
+    ['POST', '/users/{id}/delete',         'UserController@delete'],
 
     // ─── API (para AJAX/JavaScript) ───────────────────────────────────────────
     ['GET',  '/api/stats',                 'ApiController@stats'],

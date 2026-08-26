@@ -146,6 +146,9 @@ function timeAgo(?string $datetime): string
                             </td>
                             <td>
                                 <strong><?= htmlspecialchars($m['name']) ?></strong>
+                                <?php if (($m['device_type'] ?? 'mikrotik') === 'ping'): ?>
+                                    <span class="badge badge-secondary" style="font-size: 10px; padding: 1px 6px; margin-left: 4px;">Ping</span>
+                                <?php endif; ?>
                             </td>
                             <td>
                                 <code><?= htmlspecialchars($m['host']) ?></code>

@@ -120,12 +120,13 @@ class MikrotikController
         $clientId = trim($_POST['client_id'] ?? '');
         $name = trim($_POST['name'] ?? '');
         $host = trim($_POST['host'] ?? '');
-        $port = (int) ($_POST['port'] ?? 443);
-        $useSsl = (int) isset($_POST['use_ssl']);
+        $deviceType = $_POST['device_type'] ?? 'mikrotik';
+        $port = !empty($_POST['port']) ? (int) $_POST['port'] : null;
+        $useSsl = isset($_POST['use_ssl']) ? (int) $_POST['use_ssl'] : null;
         $username = trim($_POST['username'] ?? '');
         $password = $_POST['password'] ?? '';
 
-        $errors = $this->validate($clientId, $name, $host, $username, $password);
+        $errors = $this->validate($clientId, $name, $host, $deviceType, $username, $password);
 
         if (!empty($errors)) {
             $mikrotik = $_POST;
@@ -138,24 +139,39 @@ class MikrotikController
             return;
         }
 
-        // Criptografar senha com CredentialCrypto e armazenar como BYTEA
-        $encryptedBase64 = $crypto->encrypt($password);
-        $encryptedBytes = base64_decode($encryptedBase64, true);
+        if ($deviceType === 'mikrotik') {
+            // Mikrotik: criptografar senha e salvar com campos da API
+            $encryptedBase64 = $crypto->encrypt($password);
 
-        $stmt = $db->prepare('
-            INSERT INTO mikrotiks (client_id, name, host, port, use_ssl, username, password_encrypted, current_status)
-            VALUES (:client_id, :name, :host, :port, :use_ssl, :username, decode(:password_encrypted, \'base64\'), :current_status)
-        ');
-        $stmt->execute([
-            ':client_id'          => $clientId,
-            ':name'               => $name,
-            ':host'               => $host,
-            ':port'               => $port,
-            ':use_ssl'            => $useSsl,
-            ':username'           => $username,
-            ':password_encrypted' => $encryptedBase64,
-            ':current_status'     => 'unknown',
-        ]);
+            $stmt = $db->prepare('
+                INSERT INTO mikrotiks (client_id, name, host, device_type, port, use_ssl, username, password_encrypted, current_status)
+                VALUES (:client_id, :name, :host, :device_type, :port, :use_ssl, :username, decode(:password_encrypted, \'base64\'), :current_status)
+            ');
+            $stmt->execute([
+                ':client_id'          => $clientId,
+                ':name'               => $name,
+                ':host'               => $host,
+                ':device_type'        => $deviceType,
+                ':port'               => $port,
+                ':use_ssl'            => $useSsl,
+                ':username'           => $username,
+                ':password_encrypted' => $encryptedBase64,
+                ':current_status'     => 'unknown',
+            ]);
+        } else {
+            // Ping: salvar sem credenciais da API
+            $stmt = $db->prepare('
+                INSERT INTO mikrotiks (client_id, name, host, device_type, current_status)
+                VALUES (:client_id, :name, :host, :device_type, :current_status)
+            ');
+            $stmt->execute([
+                ':client_id'     => $clientId,
+                ':name'          => $name,
+                ':host'          => $host,
+                ':device_type'   => $deviceType,
+                ':current_status' => 'unknown',
+            ]);
+        }
 
         header('Location: /mikrotiks');
         exit;
@@ -426,7 +442,7 @@ class MikrotikController
         return $db->query('SELECT id, name FROM clients WHERE active = true ORDER BY name')->fetchAll();
     }
 
-    private function validate(string $clientId, string $name, string $host, string $username, string $password): array
+    private function validate(string $clientId, string $name, string $host, string $deviceType, string $username, string $password): array
     {
         $errors = [];
 
@@ -441,11 +457,15 @@ class MikrotikController
         if ($host === '') {
             $errors[] = 'O host (IP ou DDNS) é obrigatório.';
         }
-        if ($username === '') {
-            $errors[] = 'O usuário é obrigatório.';
-        }
-        if ($password === '') {
-            $errors[] = 'A senha é obrigatória.';
+
+        // Validações específicas para Mikrotik
+        if ($deviceType === 'mikrotik') {
+            if ($username === '') {
+                $errors[] = 'O usuário é obrigatório para equipamentos Mikrotik.';
+            }
+            if ($password === '') {
+                $errors[] = 'A senha é obrigatória para equipamentos Mikrotik.';
+            }
         }
 
         return $errors;

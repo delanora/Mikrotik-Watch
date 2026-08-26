@@ -191,33 +191,39 @@ try {
             // 1. Hosts novos na API → inserir no banco
             foreach ($apiByRef as $refId => $apiHost) {
                 if (!isset($existingByRef[$refId])) {
-                    $hostAddress = $apiHost['host'] ?? '';
-                    $comment = $apiHost['comment'] ?? null;
-                    $apiStatus = $apiHost['status'] ?? 'unknown';
-                    $status = ($apiStatus === 'up') ? 'up' : (($apiStatus === 'down') ? 'down' : 'unknown');
+                    try {
+                        $hostAddress = $apiHost['host'] ?? '';
+                        $comment = $apiHost['comment'] ?? null;
+                        $apiStatus = $apiHost['status'] ?? 'unknown';
+                        $status = ($apiStatus === 'up') ? 'up' : (($apiStatus === 'down') ? 'down' : 'unknown');
 
-                    $stmt = $db->prepare('
-                        INSERT INTO netwatch_hosts (mikrotik_id, host_address, comment, mikrotik_ref_id, current_status, status_since, last_checked_at, active)
-                        VALUES (:mikrotik_id, :host_address, :comment, :mikrotik_ref_id, :status, now(), now(), true)
-                    ');
-                    $stmt->execute([
-                        ':mikrotik_id'     => $mikrotikId,
-                        ':host_address'    => $hostAddress,
-                        ':comment'         => $comment,
-                        ':mikrotik_ref_id' => $refId,
-                        ':status'          => $status,
-                    ]);
-
-                    $stats['inserted']++;
-                    logMessage("[{$mikrotikName}] Host novo inserido: {$hostAddress} ({$refId})");
-
-                    // Registrar evento inicial se status é known
-                    if ($status !== 'unknown') {
                         $stmt = $db->prepare('
-                            INSERT INTO netwatch_events (netwatch_host_id, status, started_at)
-                            VALUES (currval(\'netwatch_hosts_id_seq\'), :status, now())
+                            INSERT INTO netwatch_hosts (mikrotik_id, host_address, comment, mikrotik_ref_id, current_status, status_since, last_checked_at, active)
+                            VALUES (:mikrotik_id, :host_address, :comment, :mikrotik_ref_id, :status, now(), now(), true)
+                            RETURNING id
                         ');
-                        $stmt->execute([':status' => $status]);
+                        $stmt->execute([
+                            ':mikrotik_id'     => $mikrotikId,
+                            ':host_address'    => $hostAddress,
+                            ':comment'         => $comment,
+                            ':mikrotik_ref_id' => $refId,
+                            ':status'          => $status,
+                        ]);
+                        $newHostId = $stmt->fetchColumn();
+
+                        $stats['inserted']++;
+                        logMessage("[{$mikrotikName}] Host novo inserido: {$hostAddress} ({$refId})");
+
+                        // Registrar evento inicial se status é known
+                        if ($status !== 'unknown') {
+                            $stmt = $db->prepare('
+                                INSERT INTO netwatch_events (netwatch_host_id, status, started_at)
+                                VALUES (:host_id, :status, now())
+                            ');
+                            $stmt->execute([':host_id' => $newHostId, ':status' => $status]);
+                        }
+                    } catch (\Throwable $e) {
+                        logMessage("[{$mikrotikName}] Erro ao inserir host {$refId}: {$e->getMessage()}");
                     }
                 }
             }
@@ -291,9 +297,9 @@ try {
 
             $stmt = $db->prepare('
                 UPDATE mikrotiks
-                SET current_status = :status,
+                SET current_status = :status::varchar,
                     status_since = CASE
-                        WHEN current_status != :status THEN now()
+                        WHEN current_status != :status::varchar THEN now()
                         ELSE status_since
                     END,
                     last_checked_at = now()

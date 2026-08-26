@@ -119,7 +119,15 @@ function timeAgo(?string $datetime): string
                 <div>Nenhum Mikrotik offline no momento. Todos os equipamentos estão operacionais.</div>
             </div>
         <?php else: ?>
-            <table class="table">
+            <table class="table dashboard-table">
+                <colgroup>
+                    <col style="width: 18%;">
+                    <col style="width: 22%;">
+                    <col style="width: 22%;">
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                    <col style="width: 14%; text-align: right;">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Cliente</th>
@@ -180,7 +188,15 @@ function timeAgo(?string $datetime): string
                 <div>Nenhum host offline no momento. Todos os hosts estão respondendo.</div>
             </div>
         <?php else: ?>
-            <table class="table">
+            <table class="table dashboard-table">
+                <colgroup>
+                    <col style="width: 18%;">
+                    <col style="width: 22%;">
+                    <col style="width: 22%;">
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                    <col style="width: 14%; text-align: right;">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Cliente</th>
@@ -230,6 +246,23 @@ function timeAgo(?string $datetime): string
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+.dashboard-table {
+    table-layout: fixed;
+}
+
+.dashboard-table th,
+.dashboard-table td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dashboard-table td:last-child,
+.dashboard-table th:last-child {
+    text-align: right;
+    padding-right: 20px;
 }
 </style>
 

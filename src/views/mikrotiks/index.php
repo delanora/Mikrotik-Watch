@@ -65,13 +65,14 @@ function tempDisplay(?string $temp): string
         return '<span class="text-muted">N/A</span>';
     }
     $val = (float) $temp;
+    $display = rtrim(rtrim(number_format($val, 2, '.', ''), '0'), '.');
     if ($val >= 80) {
-        return '<span class="badge badge-danger">' . $temp . '°C</span>';
+        return '<span class="badge badge-danger">' . $display . '°C</span>';
     }
     if ($val >= 65) {
-        return '<span class="badge badge-warning">' . $temp . '°C</span>';
+        return '<span class="badge badge-warning">' . $display . '°C</span>';
     }
-    return '<span>' . $temp . '°C</span>';
+    return '<span>' . $display . '°C</span>';
 }
 ?>
 

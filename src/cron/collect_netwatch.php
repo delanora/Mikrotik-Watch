@@ -235,6 +235,7 @@ try {
                     $apiStatus = $apiHost['status'] ?? 'unknown';
                     $newStatus = ($apiStatus === 'up') ? 'up' : (($apiStatus === 'down') ? 'down' : 'unknown');
                     $oldStatus = $existing['current_status'];
+                    $statusChanged = ($newStatus !== $oldStatus);
 
                     // Atualizar host
                     $stmt = $db->prepare('
@@ -248,6 +249,12 @@ try {
                         ':status' => $newStatus,
                         ':id'     => $existing['id'],
                     ]);
+
+                    // Atualizar status_since apenas se o status mudou
+                    if ($statusChanged) {
+                        $stmt = $db->prepare('UPDATE netwatch_hosts SET status_since = now() WHERE id = :id');
+                        $stmt->execute([':id' => $existing['id']]);
+                    }
 
                     $stats['synced']++;
 

@@ -178,6 +178,30 @@ foreach ($hosts as $h) {
                     <?php endforeach; ?>
                 </tbody>
             </table>
+
+            <?php if ($totalPages > 1): ?>
+                <div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 20px;">
+                    <?php if ($page > 1): ?>
+                        <a href="?page=<?= $page - 1 ?>" class="btn btn-secondary" style="padding: 6px 12px;">
+                            ← Anterior
+                        </a>
+                    <?php endif; ?>
+
+                    <span style="color: var(--text-muted); font-size: 13px;">
+                        Página <?= $page ?> de <?= $totalPages ?>
+                        <span style="margin-left: 8px;">
+                            (<?= $totalHosts ?> hosts)
+                        </span>
+                    </span>
+
+                    <?php if ($page < $totalPages): ?>
+                        <a href="?page=<?= $page + 1 ?>" class="btn btn-secondary" style="padding: 6px 12px;">
+                            Próxima →
+                        </a>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
         <?php endif; ?>
     </div>
 </div>

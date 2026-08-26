@@ -56,7 +56,7 @@ class HostsController
     }
 
     /**
-     * Lista os hosts Netwatch de um Mikrotik específico.
+     * Lista os hosts Netwatch de um Mikrotik específico (com paginação).
      */
     public function show(): void
     {
@@ -79,7 +79,19 @@ class HostsController
             return;
         }
 
-        // Buscar hosts
+        // Paginação
+        $perPage = 10;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+
+        // Total de hosts
+        $stmt = $db->prepare('SELECT COUNT(*) FROM netwatch_hosts WHERE mikrotik_id = :mikrotik_id AND active = true');
+        $stmt->execute([':mikrotik_id' => $id]);
+        $totalHosts = (int) $stmt->fetchColumn();
+        $totalPages = max(1, (int) ceil($totalHosts / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+
+        // Buscar hosts (paginados)
         $stmt = $db->prepare('
             SELECT
                 id, host_address, comment, current_status,
@@ -95,8 +107,9 @@ class HostsController
                 END,
                 status_since ASC NULLS LAST,
                 host_address ASC
+            LIMIT :limit OFFSET :offset
         ');
-        $stmt->execute([':mikrotik_id' => $id]);
+        $stmt->execute([':mikrotik_id' => $id, ':limit' => $perPage, ':offset' => $offset]);
         $hosts = $stmt->fetchAll();
 
         $pageTitle = 'Hosts — ' . $mikrotik['name'];

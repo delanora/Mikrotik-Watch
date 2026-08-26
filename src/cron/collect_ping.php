@@ -8,7 +8,7 @@ declare(strict_types=1);
  * Verifica status de equipamentos não-Mikrotik via ICMP ping.
  * Roda a cada 5 minutos (independente dos crons de 1 minuto dos Mikrotiks).
  *
- * Crontab: */5 * * * * cd /var/www/Mikrotik-Watch/src && php cron/collect_ping.php >> /var/log/mikrotik-watch/cron.log 2>&1
+ * Crontab: a cada 5 minutos.
  */
 
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
@@ -96,7 +96,7 @@ logMessage("=== Início da verificação por Ping ===");
 
 try {
     $db = new PDO(
-        "pgsql:host={$config['database']['host']};port={$config['database']['port']};dbname={$config['database']['dbname']}",
+        "pgsql:host={$config['database']['host']};port={$config['database']['port']};dbname={$config['database']['name']}",
         $config['database']['user'],
         $config['database']['password'],
         [

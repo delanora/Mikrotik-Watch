@@ -132,6 +132,57 @@ PGPASSWORD="${DB_PASS}" \
 
 success "Schema aplicado com sucesso."
 
+# ─── 3b. Aplicar migrations ────────────────────────────────────────────────
+
+MIGRATIONS_DIR="${SCRIPT_DIR}/migrations"
+
+if [[ -d "$MIGRATIONS_DIR" ]]; then
+
+    info "Verificando migrations..."
+
+    for migration in $(ls "$MIGRATIONS_DIR"/*.sql 2>/dev/null | sort); do
+        MIGRATION_NAME=$(basename "$migration")
+
+        # Verificar se migration ja foi aplicada
+        ALREADY_APPLIED=$(PGPASSWORD="${DB_PASS}" \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc \
+            "SELECT 1 FROM pg_tables WHERE tablename = 'schema_migrations'" 2>/dev/null || echo "")
+
+        if [[ "$ALREADY_APPLIED" == "1" ]]; then
+            IS_APPLIED=$(PGPASSWORD="${DB_PASS}" \
+                psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc \
+                "SELECT 1 FROM schema_migrations WHERE version = '${MIGRATION_NAME}'" 2>/dev/null || echo "")
+
+            if [[ "$IS_APPLIED" == "1" ]]; then
+                info "  Migration ${MIGRATION_NAME} ja aplicada. Pulando."
+                continue
+            fi
+        fi
+
+        info "  Aplicando migration: ${MIGRATION_NAME}..."
+
+        PGPASSWORD="${DB_PASS}" \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
+            -f "$migration"
+
+        # Registrar migration (criar tabela se necessario)
+        runuser -u postgres -- psql -d "$DB_NAME" -c "
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                version VARCHAR(255) PRIMARY KEY,
+                applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            );
+        " 2>/dev/null || true
+
+        PGPASSWORD="${DB_PASS}" \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c \
+            "INSERT INTO schema_migrations (version) VALUES ('${MIGRATION_NAME}') ON CONFLICT DO NOTHING;"
+
+        info "  Migration ${MIGRATION_NAME} aplicada."
+    done
+
+    success "Migrations verificadas."
+fi
+
 # ─── 4. Conceder permissões ──────────────────────────────────────────────────
 
 info "Etapa 4/4: Concedendo permissões..."

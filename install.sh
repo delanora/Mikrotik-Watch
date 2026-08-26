@@ -94,6 +94,7 @@ apt-get install -y \
     openssl \
     postgresql \
     postgresql-client \
+    iputils-ping \
     php-cli \
     php-pgsql \
     php-curl \

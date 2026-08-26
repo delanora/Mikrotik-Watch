@@ -68,10 +68,13 @@ CREATE TABLE mikrotiks (
     client_id           UUID          NOT NULL REFERENCES clients(id) ON DELETE CASCADE,
     name                VARCHAR(150)  NOT NULL,
     host                VARCHAR(500)  NOT NULL,
-    port                INTEGER       NOT NULL DEFAULT 443,
-    use_ssl             BOOLEAN       NOT NULL DEFAULT true,
-    username            VARCHAR(100)  NOT NULL,
-    password_encrypted  BYTEA         NOT NULL,
+    port                INTEGER,
+    use_ssl             BOOLEAN       DEFAULT true,
+    username            VARCHAR(100),
+    password_encrypted  BYTEA,
+    device_type         VARCHAR(20)   NOT NULL DEFAULT 'mikrotik'
+        CHECK (device_type IN ('mikrotik', 'ping')),
+    last_rtt_ms         INTEGER,
     active              BOOLEAN       NOT NULL DEFAULT true,
 
     -- Status atual (cache da última verificação)
@@ -97,6 +100,16 @@ COMMENT ON COLUMN mikrotiks.current_status IS 'Status atual do equipamento: onli
 COMMENT ON COLUMN mikrotiks.status_since IS 'Timestamp de quando o equipamento entrou no status atual. Usado para calcular duração de quedas.';
 COMMENT ON COLUMN mikrotiks.last_checked_at IS 'Timestamp da última tentativa de verificação de status (sucesso ou falha).';
 COMMENT ON COLUMN mikrotiks.password_encrypted IS 'Senha da API Mikrotik criptografada com libsodium (nonce + ciphertext). Decriptada em runtime pelo PHP.';
+COMMENT ON COLUMN mikrotiks.device_type IS 'Tipo do equipamento: mikrotik (API REST) ou ping (ICMP).';
+COMMENT ON COLUMN mikrotiks.last_rtt_ms IS 'Ultimo tempo de resposta ICMP em ms (apenas para device_type = ping).';
+
+-- CHECK: mikrotik requer port, username, password_encrypted; ping so requer host
+ALTER TABLE mikrotiks ADD CONSTRAINT chk_mikrotik_fields
+    CHECK (
+        (device_type = 'mikrotik' AND port IS NOT NULL AND username IS NOT NULL AND password_encrypted IS NOT NULL)
+        OR
+        (device_type = 'ping')
+    );
 COMMENT ON COLUMN mikrotiks.last_cpu_load IS 'Último valor de CPU load percentual coletado (cache para listagem).';
 COMMENT ON COLUMN mikrotiks.last_memory_free IS 'Último valor de memória livre em bytes coletado (cache para listagem).';
 COMMENT ON COLUMN mikrotiks.last_memory_total IS 'Último valor de memória total em bytes coletado (cache para listagem).';
@@ -106,6 +119,7 @@ COMMENT ON COLUMN mikrotiks.last_voltage IS 'Último valor de voltagem coletado 
 -- Índices para mikrotiks
 CREATE INDEX idx_mikrotiks_client_id     ON mikrotiks (client_id);
 CREATE INDEX idx_mikrotiks_current_status ON mikrotiks (current_status);
+CREATE INDEX idx_mikrotiks_device_type    ON mikrotiks (device_type);
 
 -- ─── 4. health_log ───────────────────────────────────────────────────────────
 -- Histórico de saúde do equipamento em granularidade fina.
@@ -278,7 +292,8 @@ COMMENT ON COLUMN cron_locks.released_at IS 'Timestamp de quando o lock foi libe
 -- Inserir locks para os jobs conhecidos
 INSERT INTO cron_locks (job_name) VALUES
     ('health_collect'),
-    ('netwatch_sync');
+    ('netwatch_sync'),
+    ('ping_check');
 
 -- ─── Seed: Usuário admin padrão ──────────────────────────────────────────────
 -- Senha: admin (hash bcrypt gerado com cost 12)

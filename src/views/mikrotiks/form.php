@@ -96,39 +96,37 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
             <!-- Tipo de dispositivo -->
             <div class="form-group">
                 <label>Este equipamento é Mikrotik?</label>
-                <div style="display: flex; gap: 16px; align-items: center; margin-top: 6px;">
-                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                        <input
-                            type="radio"
-                            name="device_type"
-                            value="mikrotik"
-                            <?= ($mikrotik['device_type'] ?? 'mikrotik') === 'mikrotik' ? 'checked' : '' ?>
-                            onchange="toggleDeviceType()"
-                        >
-                        Sim (Mikrotik RouterOS)
+                <div class="device-type-selector">
+                    <input type="radio" name="device_type" id="device_type_mikrotik" value="mikrotik"
+                        <?= ($mikrotik['device_type'] ?? 'mikrotik') === 'mikrotik' ? 'checked' : '' ?>
+                        onchange="toggleDeviceType()" style="position: absolute; opacity: 0; pointer-events: none;">
+                    <input type="radio" name="device_type" id="device_type_ping" value="ping"
+                        <?= ($mikrotik['device_type'] ?? '') === 'ping' ? 'checked' : '' ?>
+                        onchange="toggleDeviceType()" style="position: absolute; opacity: 0; pointer-events: none;">
+
+                    <label for="device_type_mikrotik" class="device-type-card">
+                        <div class="device-type-card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+                        </div>
+                        <div class="device-type-card-title">Mikrotik RouterOS</div>
+                        <div class="device-type-card-desc">Coleta métricas via API REST (CPU, memória, temperatura)</div>
                     </label>
-                    <label class="checkbox-label" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-                        <input
-                            type="radio"
-                            name="device_type"
-                            value="ping"
-                            <?= ($mikrotik['device_type'] ?? '') === 'ping' ? 'checked' : '' ?>
-                            onchange="toggleDeviceType()"
-                        >
-                        Não (monitorar por Ping)
+
+                    <label for="device_type_ping" class="device-type-card">
+                        <div class="device-type-card-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                        </div>
+                        <div class="device-type-card-title">Monitoramento por Ping</div>
+                        <div class="device-type-card-desc">Verificação de disponibilidade via ICMP (ping)</div>
                     </label>
                 </div>
-                <small style="color: var(--text-muted);">
-                    Equipamentos Mikrotik usam a API REST para coletar métricas detalhadas.
-                    Equipamentos não-Mikrotik são monitorados apenas por ICMP (ping).
-                </small>
             </div>
 
             <!-- Campos específicos Mikrotik -->
             <div id="mikrotik-fields" style="<?= ($mikrotik['device_type'] ?? 'mikrotik') === 'ping' ? 'display: none;' : '' ?>">
 
             <!-- Porta + SSL -->
-            <div style="display: grid; grid-template-columns: 120px 1fr; gap: 16px;">
+            <div class="form-row-2">
                 <div class="form-group">
                     <label for="port">Porta</label>
                     <input
@@ -140,7 +138,7 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
                         max="65535"
                     >
                 </div>
-                <div class="form-group" style="display: flex; align-items: flex-end; padding-bottom: 4px;">
+                <div class="form-group form-group-checkbox">
                     <label class="checkbox-label">
                         <input
                             type="checkbox"
@@ -285,5 +283,108 @@ document.addEventListener('DOMContentLoaded', function() {
 @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+/* Device Type Selector — Segmented Cards */
+.device-type-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.device-type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 28px 20px 24px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.device-type-card:hover {
+    border-color: var(--text-muted);
+    background: var(--bg-hover);
+}
+
+/* Selected state */
+input#device_type_mikrotik:checked ~ label[for="device_type_mikrotik"],
+input#device_type_ping:checked ~ label[for="device_type_ping"] {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+}
+
+input#device_type_mikrotik:checked ~ label[for="device_type_mikrotik"] .device-type-card-icon,
+input#device_type_ping:checked ~ label[for="device_type_ping"] .device-type-card-icon {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent);
+}
+
+/* Checkmark on selected */
+input#device_type_mikrotik:checked ~ label[for="device_type_mikrotik"]:after,
+input#device_type_ping:checked ~ label[for="device_type_ping"]:after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 10px;
+}
+
+.device-type-card-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    transition: all 0.2s;
+}
+
+.device-type-card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.device-type-card-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* Form Row 2 columns */
+.form-row-2 {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 16px;
+    align-items: end;
+}
+
+.form-group-checkbox {
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px;
+}
+
+.form-group-checkbox .checkbox-label {
+    margin-bottom: 0;
 }
 </style>

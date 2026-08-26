@@ -204,7 +204,7 @@ function timeAgo(?string $datetime): string
                         <th>Host</th>
                         <th>Status</th>
                         <th>Offline há</th>
-                        <th style="text-align: right;">Comentário</th>
+                        <th style="text-align: right;">Host offline</th>
                     </tr>
                 </thead>
                 <tbody>

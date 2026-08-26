@@ -281,11 +281,11 @@ INSERT INTO cron_locks (job_name) VALUES
     ('status_check');
 
 -- ─── Seed: Usuário admin padrão ──────────────────────────────────────────────
--- Senha: admin123 (hash bcrypt gerado com cost 12)
+-- Senha: admin (hash bcrypt gerado com cost 12)
 -- IMPORTANTE: Altere a senha após o primeiro login em produção!
 INSERT INTO users (name, email, password_hash)
 VALUES (
     'Administrador',
     'admin@example.com',
-    '$2y$12$Wt6BNjqSE8NRDl8nBobE4e5ORYuAzMdW5Wv6aAE/NBvCoVocPYxKy'
+    '$2y$12$4VTss8nZSWW36dBxYk2vOuZbMXxR.qx4bnlG5gJjNTzCJEL.vMbim'
 );

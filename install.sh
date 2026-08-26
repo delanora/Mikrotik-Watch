@@ -182,26 +182,15 @@ else
 
     info "Diretório do projeto não encontrado."
 
-    if [[ -n "${GIT_REPO_URL:-}" ]]; then
+    GIT_REPO="${GIT_REPO_URL:-https://github.com/delanora/Mikrotik-Watch.git}"
 
-        info "Clonando repositório..."
+    info "Clonando repositório: ${GIT_REPO}"
 
-        mkdir -p "$(dirname "$APP_DIR")"
+    mkdir -p "$(dirname "$APP_DIR")"
 
-        git clone "$GIT_REPO_URL" "$APP_DIR"
+    git clone "$GIT_REPO" "$APP_DIR"
 
-        cd "$APP_DIR"
-
-    else
-
-        warn "Variável GIT_REPO_URL não definida."
-        warn "Copie o projeto manualmente para:"
-        warn "    $APP_DIR"
-
-        mkdir -p "$APP_DIR"
-
-        cd "$APP_DIR"
-    fi
+    cd "$APP_DIR"
 fi
 
 success "Projeto localizado em $APP_DIR."
@@ -281,6 +270,10 @@ if [[ ! -f ".env" ]]; then
         sed -i "s|^APP_SECRET=.*|APP_SECRET=${APP_SECRET}|g" .env
         sed -i "s|^APP_URL=.*|APP_URL=http://localhost:${APP_PORT}|g" .env
 
+        # Criptografia de credenciais Mikrotik
+        CRED_KEY=$(php -r "echo base64_encode(random_bytes(32));")
+        sed -i "s|^CREDENTIAL_ENCRYPTION_KEY=.*|CREDENTIAL_ENCRYPTION_KEY=${CRED_KEY}|g" .env
+
         chmod 600 .env
 
         success "Arquivo .env criado."
@@ -300,9 +293,23 @@ else
 
 fi
 
-# ─── 7. Configurar aplicação ────────────────────────────────────────────────
+# ─── 7. Configurar crontab ────────────────────────────────────────────────
 
-info "Etapa 7/7: Configurando aplicação e serviço..."
+info "Etapa 7/8: Configurando crontab para coletas..."
+
+mkdir -p /var/log/mikrotik-watch
+
+# Adicionar crontabs apenas se não existirem
+CRON_COLLECT="*/5 * * * * cd '${APP_DIR}/src' && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1"
+CRON_NETWATCH="*/5 * * * * cd '${APP_DIR}/src' && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1"
+
+(crontab -l 2>/dev/null | grep -v 'collect.php' | grep -v 'collect_netwatch.php'; echo "$CRON_COLLECT"; echo "$CRON_NETWATCH") | crontab -
+
+success "Crontab configurado."
+
+# ─── 8. Configurar aplicação ────────────────────────────────────────────────
+
+info "Etapa 8/8: Configurando aplicação e serviço..."
 
 # Verificar diretório src
 if [[ ! -d "${APP_DIR}/src" ]]; then

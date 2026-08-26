@@ -300,8 +300,8 @@ info "Etapa 7/8: Configurando crontab para coletas..."
 mkdir -p /var/log/mikrotik-watch
 
 # Adicionar crontabs apenas se não existirem
-CRON_COLLECT="*/5 * * * * cd '${APP_DIR}/src' && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1"
-CRON_NETWATCH="*/5 * * * * cd '${APP_DIR}/src' && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1"
+CRON_COLLECT="* * * * * cd '${APP_DIR}/src' && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1"
+CRON_NETWATCH="* * * * * cd '${APP_DIR}/src' && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1"
 
 (crontab -l 2>/dev/null | grep -v 'collect.php' | grep -v 'collect_netwatch.php'; echo "$CRON_COLLECT"; echo "$CRON_NETWATCH") | crontab -
 

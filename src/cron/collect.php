@@ -9,7 +9,7 @@ declare(strict_types=1);
  * Armazena no health_log (histórico) e atualiza campos last_ na tabela mikrotiks.
  *
  * Exemplo de crontab:
- * # 0,5,10,15,20,25,30,35,40,45,50,55 * * * * cd /var/www/Mikrotik-Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
+ * # * * * * * cd /var/www/Mikrotik-Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
  */
 
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';

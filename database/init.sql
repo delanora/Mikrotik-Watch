@@ -24,6 +24,7 @@ CREATE TABLE users (
     name          VARCHAR(150) NOT NULL,
     email         VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
+    role          VARCHAR(20)  NOT NULL DEFAULT 'admin' CHECK (role IN ('admin', 'viewer')),
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
@@ -277,8 +278,7 @@ COMMENT ON COLUMN cron_locks.released_at IS 'Timestamp de quando o lock foi libe
 -- Inserir locks para os jobs conhecidos
 INSERT INTO cron_locks (job_name) VALUES
     ('health_collect'),
-    ('netwatch_sync'),
-    ('status_check');
+    ('netwatch_sync');
 
 -- ─── Seed: Usuário admin padrão ──────────────────────────────────────────────
 -- Senha: admin (hash bcrypt gerado com cost 12)

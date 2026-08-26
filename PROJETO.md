@@ -57,11 +57,16 @@ HTTP Request → index.php (Front Controller) → Router → Controller → Serv
 ### Fluxo de Autenticação
 
 1. Usuário acessa `/login`
-2. POST com email/senha
+2. POST com email/senha (protegido por CSRF token)
 3. Password verificado via `password_verify()` (bcrypt, cost 12)
-4. Sessão PHP criada com `user_id`, `user_name`, `login_time`, `last_activity`
+4. Sessão PHP criada com `user_id`, `user_name`, `user_role`, `login_time`, `last_activity`
 5. AuthMiddleware verifica sessão em rotas protegidas (timeout configurável)
-6. Rotas públicas: apenas `/login` e assets (`/assets/*`)
+6. Rotas de escrita (create, edit, delete, store, update) requerem role `admin`
+7. Rotas públicas: apenas `/login` e assets (`/assets/*`)
+
+**Roles**:
+- `admin`: Acesso total (CRUD em clientes, Mikrotiks, coleta manual)
+- `viewer`: Somente leitura (dashboard, listagens, detalhes)
 
 ### Fluxo de Coleta (Cron)
 
@@ -123,7 +128,7 @@ WHERE job_name = 'netwatch_sync'
 - Se o lock está travado há mais de 15 minutos: adquire (timeout de segurança)
 - Se o lock está travado há menos de 15 minutos: não adquire, aborta ciclo
 
-**Jobs conhecidos**: `health_collect`, `netwatch_sync`, `status_check`
+**Jobs conhecidos**: `health_collect`, `netwatch_sync`
 
 ## Endpoints
 
@@ -164,7 +169,6 @@ WHERE job_name = 'netwatch_sync'
 |------|-----------|
 | `GET /api/stats` | Estatísticas gerais |
 | `GET /api/mikrotiks` | Lista de equipamentos |
-| `GET /api/traffic/{id}` | Dados de tráfego |
 
 ## Segurança
 
@@ -174,6 +178,8 @@ WHERE job_name = 'netwatch_sync'
 - **Arquivo `.env`**: Permissão 600, nunca versionado
 - **Prepared statements**: PDO contra SQL injection
 - **Autenticação**: Sessão PHP com timeout configurável
+- **CSRF tokens**: Proteção em todos os formulários POST via `CsrfMiddleware`
+- **Roles**: Perfis `admin` (acesso total) e `viewer` (somente leitura)
 - **API REST**: HTTP Basic Auth, porta 80/443 (nunca 8728)
 
 ## Ambientes
@@ -186,11 +192,11 @@ WHERE job_name = 'netwatch_sync'
 ## Cron Jobs
 
 ```bash
-# Coleta de dados a cada 5 minutos
-*/5 * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
+# Coleta de métricas (a cada 1 minuto)
+* * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
 
-# Sincronização Netwatch a cada 5 minutos
-0,5,10,15,20,25,30,35,40,45,50,55 * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1
+# Sincronização Netwatch (a cada 1 minuto)
+* * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1
 ```
 
 ## Testes
@@ -224,6 +230,7 @@ composer test:coverage     # Com cobertura
 | AuthMiddlewareTest | 15 | Unitário |
 | MikrotikCrudTest | 21 | Unitário |
 | ClientCrudTest | 13 | Integração |
+| MikrotikCrudIntegrationTest | 8 | Integração |
 | NetwatchSyncTest | 10 | Integração |
 
 ## Dependências PHP
@@ -242,7 +249,6 @@ composer test:coverage     # Com cobertura
 
 - [ ] **Alertas via Telegram**: Integração com API do Telegram para envio de alertas quando equipamentos ou hosts ficarem offline. Usar o campo `telegram_group_id` da tabela `clients`.
 - [ ] **Rate limiting**: Implementar rate limiting em endpoints de login para prevenir brute force.
-- [ ] **CSRF tokens**: Adicionar proteção CSRF em formulários.
 
 ### Prioridade Média
 

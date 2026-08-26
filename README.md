@@ -4,19 +4,19 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-Painel de monitoramento web para gestão de múltiplos equipamentos Mikrotik RouterOS. Coleta métricas de tráfego, status de interfaces e informações de sistema em tempo real.
+Painel de monitoramento web para gestão de múltiplos equipamentos Mikrotik RouterOS. Coleta métricas de sistema, status de hosts via Netwatch e informações de equipamentos em tempo real.
 
 ![Mikrotik Watch Dashboard](https://via.placeholder.com/800x400/1e293b/f8fafc?text=Mikrotik+Watch+Dashboard)
 
 ## Funcionalidades
 
-- 🖥️ **Dashboard** — Visão geral de todos os equipamentos com gráficos interativos
-- 📊 **Métricas de Tráfego** — Monitoramento de tráfego por interface via Chart.js
+- 🖥️ **Dashboard** — Visão geral de todos os equipamentos com status offline
+- 📊 **Métricas de Saúde** — CPU, memória, temperatura coletadas via API REST
 - 🔌 **Multi-equipamento** — Gerencie N equipamentos Mikrotik em um único painel
 - 🔐 **Autenticação** — Controle de acesso com perfis (admin/viewer)
 - 📱 **Responsivo** — Interface adaptável para desktop e mobile
-- ⚡ **Coleta Automática** — Cron jobs para coleta periódica de dados
-- 🔒 **Segurança** — Senhas criptografadas, prepared statements, CSRF
+- ⚡ **Coleta Automática** — Cron jobs para coleta periódica de dados (a cada 1 minuto)
+- 🔒 **Segurança** — Senhas criptografadas, prepared statements, CSRF tokens
 
 ## Pré-requisitos
 
@@ -272,6 +272,7 @@ composer test:coverage
 | `Unit/AuthMiddlewareTest` | Middleware de autenticação | Não |
 | `Unit/MikrotikCrudTest` | Validação e criptografia Mikrotik | Não |
 | `Integration/ClientCrudTest` | CRUD de clientes | Sim |
+| `Integration/MikrotikCrudIntegrationTest` | CRUD de Mikrotiks + criptografia | Sim |
 | `Integration/NetwatchSyncTest` | Sincronização Netwatch | Sim |
 
 ## Configuração de Cron
@@ -282,8 +283,9 @@ Para coleta automática de dados, adicione ao crontab:
 # Editar crontab
 crontab -e
 
-# Adicionar linha (coleta a cada 5 minutos)
-*/5 * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
+# Adicionar linhas (coleta a cada 1 minuto)
+* * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
+* * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1
 ```
 
 ## Contribuindo

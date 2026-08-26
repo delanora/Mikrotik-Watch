@@ -58,7 +58,7 @@ class AuthController
 
         // Buscar usuário no banco
         $db = $this->getDb();
-        $stmt = $db->prepare('SELECT id, name, email, password_hash FROM users WHERE email = :email LIMIT 1');
+        $stmt = $db->prepare('SELECT id, name, email, password_hash, role FROM users WHERE email = :email LIMIT 1');
         $stmt->execute([':email' => $email]);
         $user = $stmt->fetch();
 
@@ -74,6 +74,7 @@ class AuthController
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['user_name'] = $user['name'];
         $_SESSION['user_email'] = $user['email'];
+        $_SESSION['user_role'] = $user['role'];
         $_SESSION['login_time'] = time();
         $_SESSION['last_activity'] = time();
 

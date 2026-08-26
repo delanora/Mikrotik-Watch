@@ -24,6 +24,7 @@
             <?php endif; ?>
 
             <form method="POST" action="/login">
+                <?= \App\Middleware\CsrfMiddleware::field() ?>
                 <div class="form-group">
                     <label for="email">E-mail</label>
                     <input

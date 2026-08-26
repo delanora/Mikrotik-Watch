@@ -48,14 +48,9 @@ return [
     ['GET',  '/hosts',                     'HostsController@index'],
     ['GET',  '/hosts/{id}',                'HostsController@show'],
 
-    // ─── Interfaces ───────────────────────────────────────────────────────────
-    ['GET',  '/mikrotiks/{id}/interfaces', 'InterfaceController@index'],
-    ['GET',  '/interfaces/{id}/traffic',   'InterfaceController@trafficData'],
-
     // ─── API (para AJAX/JavaScript) ───────────────────────────────────────────
     ['GET',  '/api/stats',                 'ApiController@stats'],
     ['GET',  '/api/mikrotiks',             'ApiController@mikrotiks'],
-    ['GET',  '/api/traffic/{id}',          'ApiController@trafficData'],
     ['POST', '/api/collect',               'CollectController@trigger'],
 
 

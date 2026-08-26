@@ -11,8 +11,8 @@ declare(strict_types=1);
  * Execução:
  *   cd /var/www/Mikrotik\ Watch/src && php cron/collect_netwatch.php
  *
- * Crontab (a cada 5 minutos):
- *   0,5,10,15,20,25,30,35,40,45,50,55 * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1
+ * Crontab (a cada 1 minuto):
+ *   * * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1
  *
  * Fluxo:
  *   1. Adquire lock (cron_locks, job 'netwatch_sync')

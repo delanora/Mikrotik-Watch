@@ -86,6 +86,38 @@ class AuthMiddleware
     }
 
     /**
+     * Retorna o papel do usuário logado.
+     */
+    public static function userRole(): ?string
+    {
+        if (!self::check()) {
+            return null;
+        }
+        return $_SESSION['user_role'] ?? 'viewer';
+    }
+
+    /**
+     * Verifica se o usuário é admin.
+     */
+    public static function isAdmin(): bool
+    {
+        return self::userRole() === 'admin';
+    }
+
+    /**
+     * Exige que o usuário seja admin. Redireciona para dashboard se não for.
+     */
+    public static function requireAdmin(): void
+    {
+        self::requireAuth();
+
+        if (!self::isAdmin()) {
+            header('Location: /dashboard');
+            exit;
+        }
+    }
+
+    /**
      * Destrói a sessão atual.
      */
     private static function destroy(): void

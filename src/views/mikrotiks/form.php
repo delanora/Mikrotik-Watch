@@ -50,6 +50,7 @@ $formAction = $isEdit ? "/mikrotiks/{$mikrotik['id']}" : '/mikrotiks/store';
     </div>
     <div class="card-body">
         <form method="POST" action="<?= htmlspecialchars($formAction) ?>" id="mikrotik-form">
+            <?= \App\Middleware\CsrfMiddleware::field() ?>
 
             <!-- Cliente -->
             <div class="form-group">

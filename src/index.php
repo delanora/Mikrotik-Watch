@@ -48,6 +48,21 @@ if (!in_array($uri, $publicRoutes, true)) {
 
     if (!$isAsset) {
         \App\Middleware\AuthMiddleware::requireAuth();
+
+        // Verificar CSRF em requisições POST
+        if ($method === 'POST' && !\App\Middleware\CsrfMiddleware::verify()) {
+            http_response_code(403);
+            echo 'Token CSRF inválido. Recarregue a página e tente novamente.';
+            exit;
+        }
+
+        // Rotas de escrita requerem admin
+        $writeActions = ['create', 'store', 'edit', 'update', 'delete', 'destroy', 'testConnection', 'trigger'];
+        if (in_array($action, $writeActions, true) && !\App\Middleware\AuthMiddleware::isAdmin()) {
+            http_response_code(403);
+            echo 'Acesso negado. Apenas administradores podem executar esta ação.';
+            exit;
+        }
     }
 }
 

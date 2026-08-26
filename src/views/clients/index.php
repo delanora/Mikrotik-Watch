@@ -80,6 +80,7 @@ declare(strict_types=1);
                                     </a>
                                     <form method="POST" action="/clients/<?= htmlspecialchars($client['id']) ?>/delete" style="display: inline;"
                                           onsubmit="return confirm('⚠️ ATENÇÃO: Excluir este cliente irá remover PERMANENTAMENTE todos os Mikrotiks e todo o histórico de dados vinculados (health_log, netwatch_events, mikrotik_events).\n\nEsta ação não pode ser desfeita.\n\nDeseja continuar?');">
+                                        <?= \App\Middleware\CsrfMiddleware::field() ?>
                                         <button type="submit" class="btn btn-ghost btn-danger" title="Excluir">
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                                         </button>

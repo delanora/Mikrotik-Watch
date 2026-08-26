@@ -41,6 +41,7 @@ $formAction = $isEdit ? "/clients/{$client['id']}" : '/clients';
     </div>
     <div class="card-body">
         <form method="POST" action="<?= htmlspecialchars($formAction) ?>">
+            <?= \App\Middleware\CsrfMiddleware::field() ?>
 
             <div class="form-group">
                 <label for="name">Nome do Cliente *</label>

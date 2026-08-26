@@ -185,10 +185,10 @@ function timeAgo(?string $datetime): string
                     <tr>
                         <th>Cliente</th>
                         <th>Equipamento</th>
-                        <th>Endereço</th>
-                        <th>Comentário</th>
+                        <th>Host</th>
                         <th>Status</th>
-                        <th>Down há</th>
+                        <th>Offline há</th>
+                        <th style="text-align: right;">Comentário</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -204,6 +204,12 @@ function timeAgo(?string $datetime): string
                                 <code><?= htmlspecialchars($h['host_address']) ?></code>
                             </td>
                             <td>
+                                <span class="badge badge-danger">down</span>
+                            </td>
+                            <td>
+                                <strong><?= timeAgo($h['status_since']) ?></strong>
+                            </td>
+                            <td style="text-align: right;">
                                 <?php if (!empty($h['comment'])): ?>
                                     <span style="background: var(--warning-bg); color: var(--warning); padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
                                         <?= htmlspecialchars($h['comment']) ?>
@@ -211,12 +217,6 @@ function timeAgo(?string $datetime): string
                                 <?php else: ?>
                                     <span class="text-muted">—</span>
                                 <?php endif; ?>
-                            </td>
-                            <td>
-                                <span class="badge badge-danger">down</span>
-                            </td>
-                            <td>
-                                <strong><?= timeAgo($h['status_since']) ?></strong>
                             </td>
                         </tr>
                     <?php endforeach; ?>

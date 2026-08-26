@@ -56,6 +56,7 @@ return [
     ['GET',  '/api/stats',                 'ApiController@stats'],
     ['GET',  '/api/mikrotiks',             'ApiController@mikrotiks'],
     ['GET',  '/api/traffic/{id}',          'ApiController@trafficData'],
+    ['POST', '/api/collect',               'CollectController@trigger'],
 
 
 ];

@@ -240,6 +240,10 @@ try {
                     $stmt = $db->prepare('
                         UPDATE netwatch_hosts
                         SET current_status = :status,
+                            status_since = CASE
+                                WHEN current_status != :status THEN now()
+                                ELSE status_since
+                            END,
                             last_checked_at = now(),
                             active = true
                         WHERE id = :id

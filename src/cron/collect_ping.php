@@ -181,12 +181,11 @@ try {
         $rtt = null;
         $pingOk = false;
 
-        if (str_contains($output, 'avg')) {
-            if (preg_match('/avg\s*=\s*[\d.]+\/([\d.]+)\//', $output, $matches)) {
-                $rtt = (int) round((float) $matches[1]);
-                $pingOk = true;
-            }
-        } elseif (str_contains($output, '1 received') || str_contains($output, '1 packets received')) {
+        // Formato típico: rtt min/avg/max/mdev = 1.234/5.678/9.012/3.456 ms
+        if (preg_match('/min\/avg\/max\/mdev\s*=\s*[\d.]+\/([\d.]+)\//', $output, $matches)) {
+            $rtt = (int) round((float) $matches[1]);
+            $pingOk = true;
+        } elseif (str_contains($output, 'received') && !str_contains($output, '0 received')) {
             $pingOk = true;
         }
 

@@ -50,7 +50,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3><?= (int) $summary['total_mikrotiks'] ?></h3>
-            <p>Total Mikrotiks</p>
+            <p>Total dispositivos</p>
         </div>
     </div>
     <div class="stat-card">
@@ -59,7 +59,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3 style="color: var(--success);"><?= (int) $summary['online_mikrotiks'] ?></h3>
-            <p>Mikrotiks Online</p>
+            <p>Dispositivos Online</p>
         </div>
     </div>
     <div class="stat-card">
@@ -68,7 +68,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3 style="color: var(--danger);"><?= (int) $summary['offline_mikrotiks'] ?></h3>
-            <p>Mikrotiks Offline</p>
+            <p>Dispositivos Offline</p>
         </div>
     </div>
     <div class="stat-card">
@@ -77,7 +77,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3><?= (int) $hostSummary['total_hosts'] ?></h3>
-            <p>Total Hosts</p>
+            <p>Hosts internos</p>
         </div>
     </div>
     <div class="stat-card">

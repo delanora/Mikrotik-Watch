@@ -165,8 +165,9 @@ if [[ -d "$MIGRATIONS_DIR" ]]; then
             psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" \
             -f "$migration"
 
-        # Registrar migration (criar tabela se necessario)
-        runuser -u postgres -- psql -d "$DB_NAME" -c "
+        # Registrar migration (criar tabela se necessario com o usuario da app)
+        PGPASSWORD="${DB_PASS}" \
+            psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "
             CREATE TABLE IF NOT EXISTS schema_migrations (
                 version VARCHAR(255) PRIMARY KEY,
                 applied_at TIMESTAMPTZ NOT NULL DEFAULT now()

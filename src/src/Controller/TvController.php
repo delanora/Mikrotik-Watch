@@ -98,6 +98,11 @@ class TvController
 
         // ─── Renderizar ───────────────────────────────────────────────────────
 
+        // Anti-cache: sempre buscar dados frescos do banco
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+
         require __DIR__ . '/../../views/tv/index.php';
     }
 
@@ -165,6 +170,9 @@ class TvController
         $stmt = $db->query('SELECT MAX(last_checked_at) AS last_check FROM mikrotiks WHERE active = true');
         $lastCheck = $stmt->fetchColumn();
 
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
         header('Content-Type: application/json');
         echo json_encode([
             'devices'      => $deviceSummary,

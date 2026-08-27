@@ -32,6 +32,8 @@ if ($config['app']['debug']) {
 // ─── Rotas protegidas por auth ──────────────────────────────────────────────
 $publicRoutes = [
     '/login',
+    '/tv',
+    '/tv/api',
 ];
 
 // ─── Request Atual ───────────────────────────────────────────────────────────

@@ -59,5 +59,8 @@ return [
     ['GET',  '/api/mikrotiks',             'ApiController@mikrotiks'],
     ['POST', '/api/collect',               'CollectController@trigger'],
 
+    // ─── TV Dashboard (sem auth) ─────────────────────────────────────────────
+    ['GET',  '/tv',                        'TvController@index'],
+    ['GET',  '/tv/api',                    'TvController@api'],
 
 ];

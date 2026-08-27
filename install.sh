@@ -329,13 +329,19 @@ info "Etapa 7/8: Configurando crontab para coletas..."
 
 mkdir -p /var/log/mikrotik-watch
 
-# Adicionar crontabs apenas se não existirem
-# Usar || true para evitar que set -euo pipefail mate o subshell quando crontab -l retorna erro
+# Adicionar crontabs — usar arquivo temporário para evitar problemas com pipefail
 CRON_COLLECT="* * * * * cd '${APP_DIR}/src' && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1"
 CRON_NETWATCH="* * * * * cd '${APP_DIR}/src' && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1"
 CRON_PING="*/5 * * * * cd '${APP_DIR}/src' && php cron/collect_ping.php >> /var/log/mikrotik-watch/cron.log 2>&1"
 
-(crontab -l 2>/dev/null || true | grep -v 'collect.php' | grep -v 'collect_netwatch.php' | grep -v 'collect_ping.php'; echo "$CRON_COLLECT"; echo "$CRON_NETWATCH"; echo "$CRON_PING") | crontab -
+CRON_TMP=$(mktemp)
+(crontab -l 2>/dev/null || true) > "$CRON_TMP"
+grep -v 'collect\.php\|collect_netwatch\.php\|collect_ping\.php' "$CRON_TMP" > "${CRON_TMP}.2" || true
+echo "$CRON_COLLECT" >> "${CRON_TMP}.2"
+echo "$CRON_NETWATCH" >> "${CRON_TMP}.2"
+echo "$CRON_PING" >> "${CRON_TMP}.2"
+crontab "${CRON_TMP}.2"
+rm -f "$CRON_TMP" "${CRON_TMP}.2"
 
 success "Crontab configurado."
 

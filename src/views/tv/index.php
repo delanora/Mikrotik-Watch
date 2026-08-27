@@ -428,22 +428,22 @@ function tvMemPct($free, $total): ?float
             gap: 8px;
         }
 
-        .tv-host-address {
-            font-weight: 700;
-            font-size: 12px;
-            font-family: var(--font-mono);
-            color: var(--text-primary);
-        }
-
         .tv-host-comment {
-            font-size: 11px;
+            font-weight: 700;
+            font-size: 13px;
             color: var(--warning);
             background: var(--warning-bg);
             border: 1px solid var(--warning-border);
-            padding: 2px 8px;
+            padding: 2px 10px;
             border-radius: var(--radius-sm);
-            font-weight: 600;
             display: inline-block;
+        }
+
+        .tv-host-address {
+            font-weight: 500;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-muted);
         }
 
         .tv-host-meta {
@@ -688,10 +688,10 @@ function tvMemPct($free, $total): ?float
                         <?php foreach ($downHosts as $h): ?>
                             <div class="tv-host-item">
                                 <div class="tv-host-top">
-                                    <span class="tv-host-address"><?= htmlspecialchars($h['host_address']) ?></span>
                                     <?php if (!empty($h['comment'])): ?>
                                         <span class="tv-host-comment"><?= htmlspecialchars($h['comment']) ?></span>
                                     <?php endif; ?>
+                                    <span class="tv-host-address"><?= htmlspecialchars($h['host_address']) ?></span>
                                 </div>
                                 <div class="tv-host-meta">
                                     <span><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></span>
@@ -799,8 +799,8 @@ function tvMemPct($free, $total): ?float
                             var comment = h.comment ? '<span class="tv-host-comment">' + esc(h.comment) + '</span>' : '';
                             return '<div class="tv-host-item">'
                                 + '<div class="tv-host-top">'
-                                + '<span class="tv-host-address">' + esc(h.host_address) + '</span>'
                                 + comment
+                                + '<span class="tv-host-address">' + esc(h.host_address) + '</span>'
                                 + '</div>'
                                 + '<div class="tv-host-meta">'
                                 + '<span>' + esc(h.mikrotik_name || '\u2014') + '</span>'

@@ -802,7 +802,9 @@ function tvMemPct($free, $total): ?float
 
     function timeAgo(dt) {
         if (!dt) return '—';
-        var diff = (Date.now() - new Date(dt + 'Z').getTime()) / 1000;
+        // Banco retorna horários em America/Sao_Paulo (sem offset).
+        // NÃO adicionar 'Z' — Date() do browser interpreta como local.
+        var diff = (Date.now() - new Date(dt).getTime()) / 1000;
         if (diff < 60) return Math.floor(diff) + 's';
         if (diff < 3600) return Math.floor(diff / 60) + 'm';
         if (diff < 86400) return Math.floor(diff / 3600) + 'h ' + Math.floor((diff % 3600) / 60) + 'm';

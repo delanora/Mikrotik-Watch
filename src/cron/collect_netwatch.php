@@ -259,6 +259,7 @@ try {
 
         $batchRequests[] = [
             'mikrotik_id' => $id,
+            'key'         => $id,
             'endpoint'    => '/rest/tool/netwatch',
             'host'        => $mikrotik['host'],
             'port'        => (int) $mikrotik['port'],
@@ -325,41 +326,14 @@ try {
 
             syncNetwatchHosts($db, $mikrotikId, $mikrotikName, $apiHosts, $existingHosts, $stats);
 
-            // ─── Atualizar status do Mikrotik ─────────────────────────────────
-
-            $stmt = $db->prepare('
-                UPDATE mikrotiks
-                SET current_status = :status::varchar,
-                    status_since = CASE
-                        WHEN current_status != :status::varchar THEN now()
-                        ELSE status_since
-                    END,
-                    last_checked_at = now()
-                WHERE id = :id
-            ');
-            $stmt->execute([
-                ':status' => $mikrotikNewStatus,
-                ':id'     => $mikrotikId,
-            ]);
-
             $stats['processed']++;
 
         } catch (MikrotikApiException $e) {
-            // Mikrotik offline → atualizar status
-            $stmt = $db->prepare('
-                UPDATE mikrotiks
-                SET current_status = \'offline\',
-                    status_since = CASE
-                        WHEN current_status != \'offline\' THEN now()
-                        ELSE status_since
-                    END,
-                    last_checked_at = now()
-                WHERE id = :id
-            ');
-            $stmt->execute([':id' => $mikrotikId]);
-
+            // Falha na API netwatch NÃO significa que o Mikrotik está offline.
+            // O status online/offline é gerenciado pelo collect.php (health).
+            // Aqui apenas registramos o erro de netwatch.
             $stats['errors']++;
-            logMessage("[{$mikrotikName}] ERRO: {$e->getMessage()}");
+            logMessage("[{$mikrotikName}] ERRO netwatch: {$e->getMessage()}");
 
         } catch (\Throwable $e) {
             $stats['errors']++;

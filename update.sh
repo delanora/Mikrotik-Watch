@@ -19,7 +19,7 @@ warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error()   { echo -e "${RED}[ERRO]${NC} $1"; exit 1; }
 
 # ─── Configurações ───────────────────────────────────────────────────────────
-APP_DIR="/var/www/Mikrotik Watch"
+APP_DIR="/var/www/Mikrotik-Watch"
 SERVICE_NAME="Mikrotik Watch"
 
 # ─── Verificar root ──────────────────────────────────────────────────────────

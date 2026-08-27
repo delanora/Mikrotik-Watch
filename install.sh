@@ -22,7 +22,7 @@ NC='\033[0m'
 # ─── Configurações ───────────────────────────────────────────────────────────
 
 APP_NAME="Mikrotik Watch"
-APP_DIR="/var/www/Mikrotik Watch"
+APP_DIR="/var/www/Mikrotik-Watch"
 
 DB_NAME="mikrotik_watch_db"
 DB_USER="mikrotik_watch"

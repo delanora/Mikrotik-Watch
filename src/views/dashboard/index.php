@@ -274,6 +274,9 @@ function timeAgo(?string $datetime): string
 .dashboard-table th:last-child {
     text-align: right;
     padding-right: 20px;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
 }
 </style>
 

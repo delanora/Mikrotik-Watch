@@ -35,6 +35,7 @@ APP_SECRET=$(openssl rand -hex 32)
 
 SERVICE_NAME="Mikrotik Watch"
 SERVICE_FILE="/etc/systemd/system/Mikrotik-Watch.service"
+SERVICE_ID="Mikrotik-Watch.service"
 
 # ─── Funções auxiliares ──────────────────────────────────────────────────────
 
@@ -81,7 +82,7 @@ success "Sistema operacional compatível."
 
 # ─── 1. Instalar dependências ────────────────────────────────────────────────
 
-info "Etapa 1/7: Atualizando sistema e instalando dependências..."
+info "Etapa 1/8: Atualizando sistema e instalando dependências..."
 
 export DEBIAN_FRONTEND=noninteractive
 
@@ -107,7 +108,7 @@ success "Dependências instaladas."
 
 # ─── 2. Verificar PHP ────────────────────────────────────────────────────────
 
-info "Etapa 2/7: Verificando versão do PHP..."
+info "Etapa 2/8: Verificando versão do PHP..."
 
 if ! command -v php >/dev/null 2>&1; then
     error "PHP não foi instalado corretamente."
@@ -130,7 +131,7 @@ success "PHP ${PHP_VERSION} detectado e compatível."
 
 # ─── 3. Instalar Composer ────────────────────────────────────────────────────
 
-info "Etapa 3/7: Verificando Composer..."
+info "Etapa 3/8: Verificando Composer..."
 
 if ! command -v composer >/dev/null 2>&1; then
 
@@ -160,7 +161,7 @@ composer --version
 
 # ─── 4. Clonar ou verificar projeto ──────────────────────────────────────────
 
-info "Etapa 4/7: Verificando diretório do projeto..."
+info "Etapa 4/8: Verificando diretório do projeto..."
 
 if [[ -d "$APP_DIR/.git" ]]; then
 
@@ -219,7 +220,7 @@ fi
 
 # ─── 5. Configurar PostgreSQL ────────────────────────────────────────────────
 
-info "Etapa 5/7: Configurando PostgreSQL..."
+info "Etapa 5/8: Configurando PostgreSQL..."
 
 # Tentar iniciar PostgreSQL
 if command -v systemctl >/dev/null 2>&1 && \
@@ -249,7 +250,7 @@ DB_NAME="${DB_NAME}" DB_USER="${DB_USER}" DB_PASS="${DB_PASS}" \
 
 # ─── 6. Configurar .env ─────────────────────────────────────────────────────
 
-info "Etapa 6/7: Configurando arquivo .env..."
+info "Etapa 6/8: Configurando arquivo .env..."
 
 # ─── Configurar .env ─────────────────────────────────────────────────────────
 
@@ -388,9 +389,9 @@ EOF
 
     systemctl daemon-reload
 
-    systemctl enable "${SERVICE_FILE}" >/dev/null 2>&1 || true
+    systemctl enable "${SERVICE_ID}" >/dev/null 2>&1 || true
 
-    systemctl restart "${SERVICE_FILE}" || \
+    systemctl restart "${SERVICE_ID}" || \
         warn "Não foi possível iniciar o serviço automaticamente."
 
     success "Serviço systemd configurado."
@@ -415,7 +416,7 @@ if [[ "$SYSTEMD_AVAILABLE" == true ]]; then
 
     sleep 2
 
-    if systemctl is-active --quiet "${SERVICE_FILE}"; then
+    if systemctl is-active --quiet "${SERVICE_ID}"; then
 
         success "Mikrotik Watch está rodando."
 
@@ -424,7 +425,7 @@ if [[ "$SYSTEMD_AVAILABLE" == true ]]; then
         warn "O serviço não está ativo."
 
         info "Verifique os logs com:"
-        echo "    journalctl -u '${SERVICE_FILE}' -n 100 --no-pager"
+        echo "    journalctl -u '${SERVICE_ID}' -n 100 --no-pager"
 
     fi
 
@@ -479,10 +480,10 @@ echo ""
 if [[ "$SYSTEMD_AVAILABLE" == true ]]; then
 
     echo -e "  ${YELLOW}Comandos úteis:${NC}"
-    echo "    Status:    systemctl status '${SERVICE_FILE}'"
-    echo "    Logs:      journalctl -u '${SERVICE_FILE}' -f"
-    echo "    Reiniciar: systemctl restart '${SERVICE_FILE}'"
-    echo "    Parar:     systemctl stop '${SERVICE_FILE}'"
+    echo "    Status:    systemctl status '${SERVICE_ID}'"
+    echo "    Logs:      journalctl -u '${SERVICE_ID}' -f"
+    echo "    Reiniciar: systemctl restart '${SERVICE_ID}'"
+    echo "    Parar:     systemctl stop '${SERVICE_ID}'"
 
 else
 

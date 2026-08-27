@@ -77,18 +77,26 @@ function syncNetwatchHosts(
     $existingByRef = [];
     foreach ($existingHosts as $existing) {
         if ($existing['mikrotik_ref_id'] !== null) {
-            $existingByRef[$existing['mikrotik_ref_id']] = $existing;
+            $existingByRef[(string) $existing['mikrotik_ref_id']] = $existing;
         }
     }
 
-    // Indexar API hosts por .id
+    // Indexar API hosts por .id (normalizando para string)
     $apiByRef = [];
+    $skippedNoRef = 0;
     foreach ($apiHosts as $apiHost) {
         $refId = $apiHost['.id'] ?? null;
         if ($refId !== null) {
-            $apiByRef[$refId] = $apiHost;
+            $apiByRef[(string) $refId] = $apiHost;
+        } else {
+            $skippedNoRef++;
         }
     }
+
+    if ($skippedNoRef > 0) {
+        logMessage("[{$mikrotikName}] ⚠️ {$skippedNoRef} hosts ignorados (sem campo .id na resposta da API)");
+    }
+    logMessage("[{$mikrotikName}] Sincronizando: " . count($apiByRef) . " hosts na API, " . count($existingByRef) . " existentes no banco");
 
     // 1. Hosts novos na API → inserir no banco
     foreach ($apiByRef as $refId => $apiHost) {
@@ -108,7 +116,7 @@ function syncNetwatchHosts(
                     ':mikrotik_id'     => $mikrotikId,
                     ':host_address'    => $hostAddress,
                     ':comment'         => $comment,
-                    ':mikrotik_ref_id' => $refId,
+                    ':mikrotik_ref_id' => (string) $refId,
                     ':status'          => $status,
                 ]);
                 $newHostId = $stmt->fetchColumn();
@@ -312,7 +320,14 @@ try {
             $apiHosts = $result['data'];
             $mikrotikNewStatus = 'online';
 
-            logMessage("[{$mikrotikName}] Conectado. Hosts na API: " . count($apiHosts));
+            // Debug: log do tipo e tamanho da resposta para diagnóstico
+            $hostCount = is_array($apiHosts) ? count($apiHosts) : 0;
+            logMessage("[{$mikrotikName}] Conectado. Hosts na API: {$hostCount} (tipo: " . gettype($apiHosts) . ")");
+
+            if ($hostCount > 0) {
+                $sample = reset($apiHosts);
+                logMessage("[{$mikrotikName}] Amostra do primeiro host: " . json_encode(array_keys($sample ?? [])));
+            }
 
             // ─── Sincronizar hosts ────────────────────────────────────────────
 

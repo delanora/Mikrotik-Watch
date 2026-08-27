@@ -72,6 +72,8 @@ class ClientController
      */
     public function store(): void
     {
+        \App\Middleware\AuthMiddleware::requireAdmin();
+
         $name = trim($_POST['name'] ?? '');
         $telegramGroupId = trim($_POST['telegram_group_id'] ?? '');
 
@@ -129,6 +131,8 @@ class ClientController
      */
     public function update(): void
     {
+        \App\Middleware\AuthMiddleware::requireAdmin();
+
         $id = $this->extractId();
         $client = $this->findClient($id);
 
@@ -174,6 +178,8 @@ class ClientController
      */
     public function destroy(): void
     {
+        \App\Middleware\AuthMiddleware::requireAdmin();
+
         $id = $this->extractId();
         $client = $this->findClient($id);
 

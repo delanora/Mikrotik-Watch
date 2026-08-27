@@ -59,6 +59,8 @@ class UserController
      */
     public function store(): void
     {
+        \App\Middleware\AuthMiddleware::requireAdmin();
+
         $db = $this->getDb();
 
         $name = trim($_POST['name'] ?? '');
@@ -114,6 +116,8 @@ class UserController
      */
     public function delete(): void
     {
+        \App\Middleware\AuthMiddleware::requireAdmin();
+
         $id = $this->extractId();
         $db = $this->getDb();
 

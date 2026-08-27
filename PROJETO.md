@@ -64,7 +64,7 @@ HTTP Request → index.php (Front Controller) → Router → Controller → Serv
 3. Password verificado via `password_verify()` (bcrypt, cost 12)
 4. Sessão PHP criada com `user_id`, `user_name`, `user_role`, `login_time`, `last_activity`
 5. AuthMiddleware verifica sessão em rotas protegidas (timeout configurável)
-6. Rotas de escrita (create, edit, delete, store, update) requerem role `admin`
+6. Rotas de escrita (create, edit, delete, store, update) requerem role `admin`. Viewer é redirecionado para `/dashboard?error=forbidden` com mensagem flash
 7. Rotas públicas: apenas `/login` e assets (`/assets/*`)
 
 **Roles**:
@@ -213,6 +213,8 @@ WHERE job_name = 'netwatch_sync'
 
 **Importante**: Os crons de 1 minuto processam APENAS equipamentos com `device_type = 'mikrotik'`. O cron de ping processa APENAS equipamentos com `device_type = 'ping'`. Nunca misturam.
 
+**Paralelismo**: Os crons `collect.php` e `collect_netwatch.php` usam `curl_multi` (via `MikrotikClient::batchGet`) para disparar todas as requisições HTTP aos Mikrotiks em paralelo, com limite de concorrência (max 30 simultâneas). Isso garante que o ciclo completo caiba na janela de 1 minuto mesmo com múltiplos equipamentos lentos ou offline. O timeout individual por requisição continua sendo 5 segundos.
+
 ## Testes
 
 ### Configuração
@@ -243,10 +245,13 @@ composer test:coverage     # Com cobertura
 | MikrotikClientTest | 24 | Unitário |
 | AuthMiddlewareTest | 15 | Unitário |
 | MikrotikCrudTest | 21 | Unitário |
+| BatchRequestTest | 3 | Unitário |
 | ClientCrudTest | 13 | Integração |
 | MikrotikCrudIntegrationTest | 8 | Integração |
 | NetwatchSyncTest | 10 | Integração |
 | PingDeviceTest | 5 | Integração |
+| AdminViewerTest | 9 | Integração |
+| **Total** | **131** | |
 
 ## Dependências PHP
 

@@ -114,6 +114,8 @@ class MikrotikController
      */
     public function store(): void
     {
+        \App\Middleware\AuthMiddleware::requireAdmin();
+
         $db = $this->getDb();
         $crypto = $this->getCrypto();
 
@@ -247,6 +249,8 @@ class MikrotikController
      */
     public function update(): void
     {
+        \App\Middleware\AuthMiddleware::requireAdmin();
+
         $id = $this->extractId();
         $db = $this->getDb();
         $crypto = $this->getCrypto();
@@ -322,6 +326,8 @@ class MikrotikController
      */
     public function delete(): void
     {
+        \App\Middleware\AuthMiddleware::requireAdmin();
+
         $id = $this->extractId();
         $db = $this->getDb();
 

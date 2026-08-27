@@ -105,14 +105,18 @@ class AuthMiddleware
     }
 
     /**
-     * Exige que o usuário seja admin. Redireciona para dashboard se não for.
+     * Exige que o usuário seja admin. Redireciona para dashboard com mensagem de erro se não for.
      */
     public static function requireAdmin(): void
     {
         self::requireAuth();
 
         if (!self::isAdmin()) {
-            header('Location: /dashboard');
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $_SESSION['flash_error'] = 'Você não tem permissão para executar esta ação.';
+            header('Location: /dashboard?error=forbidden');
             exit;
         }
     }

@@ -3,13 +3,12 @@
 declare(strict_types=1);
 
 /**
- * Mikrotik Watch - Cron de Coleta de Métricas
+ * Mikrotik Watch - Cron de Coleta de Métricas (Paralelo)
  *
  * Coleta CPU, memória, temperatura e voltagem de todos os Mikrotiks ativos.
- * Armazena no health_log (histórico) e atualiza campos last_ na tabela mikrotiks.
+ * Usa curl_multi para disparar requisições em paralelo (não sequenciais).
  *
- * Exemplo de crontab:
- * # * * * * * cd /var/www/Mikrotik-Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
+ * Crontab: * * * * * cd /var/www/Mikrotik-Watch/src && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1
  */
 
 require_once dirname(__DIR__, 2) . '/vendor/autoload.php';
@@ -20,6 +19,7 @@ date_default_timezone_set($config['app']['timezone']);
 
 $logFile = '/var/log/mikrotik-watch/cron.log';
 $jobName = 'health_collect';
+$startTime = microtime(true);
 
 function logMessage(string $message): void
 {
@@ -33,19 +33,16 @@ function logMessage(string $message): void
 
 function acquireLock(\PDO $db, string $job, int $timeoutMinutes = 15): bool
 {
-    // Verificar se já existe um lock ativo (released_at IS NULL = ainda rodando)
     $stmt = $db->prepare('SELECT 1 FROM cron_locks WHERE job_name = :job AND released_at IS NULL');
     $stmt->execute([':job' => $job]);
     $activeLock = $stmt->fetch();
 
     if ($activeLock !== false) {
-        // Verificar se expirou (locked_at + timeout > now)
         $stmt = $db->prepare('SELECT 1 FROM cron_locks WHERE job_name = :job AND released_at IS NULL AND locked_at > now() - :timeout * interval \'1 minute\'');
         $stmt->execute([':job' => $job, ':timeout' => $timeoutMinutes]);
-        return $stmt->fetch() === false; // Se não expirou, outro processo está rodando
+        return $stmt->fetch() === false;
     }
 
-    // Inserir ou atualizar lock
     $stmt = $db->prepare('
         INSERT INTO cron_locks (job_name, locked_at)
         VALUES (:job, now())
@@ -125,36 +122,87 @@ try {
 
     logMessage("Equipamentos ativos: {$total}");
 
+    if ($total === 0) {
+        logMessage("Nenhum equipamento Mikrotik ativo. Finalizando.");
+        exit(0);
+    }
+
+    // ─── Preparar requisições em paralelo ────────────────────────────────────
+    $batchRequests = [];
+    $mikrotikIndex = []; // id => dados do mikrotik (para decrypt)
+
+    foreach ($mikrotiks as $mikrotik) {
+        $id = $mikrotik['id'];
+
+        // Descriptografar senha (PDO retorna BYTEA como stream)
+        $encryptedBytes = $mikrotik['password_encrypted'];
+        if (is_resource($encryptedBytes)) {
+            $encryptedBytes = stream_get_contents($encryptedBytes);
+        }
+        $encryptedBase64 = base64_encode($encryptedBytes);
+        $password = $crypto->decrypt($encryptedBase64);
+
+        $mikrotikIndex[$id] = $mikrotik;
+        $mikrotikIndex[$id]['_password'] = $password;
+
+        // system/resource (CPU, memória, uptime, versão)
+        $batchRequests[] = [
+            'mikrotik_id' => $id,
+            'key'         => "{$id}_resource",
+            'endpoint'    => '/rest/system/resource',
+            'host'        => $mikrotik['host'],
+            'port'        => (int) $mikrotik['port'],
+            'use_ssl'     => (bool) $mikrotik['use_ssl'],
+            'username'    => $mikrotik['username'],
+            'password'    => $password,
+        ];
+
+        // system/health (temperatura, voltagem)
+        $batchRequests[] = [
+            'mikrotik_id' => $id,
+            'key'         => "{$id}_health",
+            'endpoint'    => '/rest/system/health',
+            'host'        => $mikrotik['host'],
+            'port'        => (int) $mikrotik['port'],
+            'use_ssl'     => (bool) $mikrotik['use_ssl'],
+            'username'    => $mikrotik['username'],
+            'password'    => $password,
+        ];
+    }
+
+    // ─── Disparar TODAS as requisições em paralelo ───────────────────────────
+    $results = \App\Service\MikrotikClient::batchGet(
+        $batchRequests,
+        timeout: $config['mikrotik']['default_timeout'],
+        verifySsl: !$config['mikrotik']['allow_self_signed'],
+        caCertPath: null,
+        maxConcurrency: 30,
+    );
+
+    logMessage("Requisições HTTP disparadas e coletadas em paralelo.");
+
+    // ─── Processar resultados individualmente ────────────────────────────────
+
     foreach ($mikrotiks as $mikrotik) {
         $mikrotikId = $mikrotik['id'];
         $name = $mikrotik['name'];
-        $host = $mikrotik['host'];
-        $port = (int) $mikrotik['port'];
-        $useSsl = (bool) $mikrotik['use_ssl'];
-        $username = $mikrotik['username'];
+
+        $resourceResult = $results["{$mikrotikId}_resource"] ?? null;
+        $healthResult = $results["{$mikrotikId}_health"] ?? null;
 
         try {
-            // Descriptografar senha (PDO retorna BYTEA como stream)
-            $encryptedBytes = $mikrotik['password_encrypted'];
-            if (is_resource($encryptedBytes)) {
-                $encryptedBytes = stream_get_contents($encryptedBytes);
+            // Verificar erro de conexão no system/resource
+            if ($resourceResult === null || isset($resourceResult['error'])) {
+                $errorMsg = $resourceResult['error'] ?? 'Sem resposta';
+                throw new \App\Exception\MikrotikApiException(
+                    "Falha de conexão com {$mikrotik['host']}: {$errorMsg}",
+                    $mikrotik['host'],
+                    '/rest/system/resource',
+                    0
+                );
             }
-            $encryptedBase64 = base64_encode($encryptedBytes);
-            $password = $crypto->decrypt($encryptedBase64);
 
-            // Criar cliente
-            $client = new \App\Service\MikrotikClient(
-                host: $host,
-                username: $username,
-                password: $password,
-                port: $port,
-                useSsl: $useSsl,
-                verifySsl: !$config['mikrotik']['allow_self_signed'],
-                timeout: $config['mikrotik']['default_timeout'],
-            );
-
-            // ─── Coletar system/resource (CPU, memória, uptime, versão) ──────
-            $resource = $client->systemResource();
+            $resource = $resourceResult['data'];
 
             $cpuLoad = (int) ($resource['cpu-load'] ?? 0);
             $memoryFree = (int) ($resource['free-memory'] ?? 0);
@@ -164,14 +212,12 @@ try {
             $boardName = $resource['board-name'] ?? null;
             $routerosVersion = $resource['version'] ?? null;
 
-            // ─── Coletar system/health (temperatura, voltagem) ────────────────
+            // Coletar system/health (temperatura, voltagem)
             $temperature = null;
             $voltage = null;
 
-            try {
-                $health = $client->systemHealth();
-                // systemHealth retorna array de [{name, type, value}, ...]
-                foreach ($health as $item) {
+            if ($healthResult !== null && !isset($healthResult['error'])) {
+                foreach ($healthResult['data'] as $item) {
                     $itemName = $item['name'] ?? '';
                     $itemValue = $item['value'] ?? '';
                     if ($itemName === 'cpu-temperature' && is_numeric($itemValue)) {
@@ -182,11 +228,9 @@ try {
                         $voltage = (float) $itemValue;
                     }
                 }
-            } catch (\Throwable $e) {
-                // Alguns modelos não reportam health — ignora silenciosamente
             }
 
-            // ─── Atualizar mikrotiks (campos last_*) ─────────────────────────
+            // Atualizar mikrotiks (campos last_*)
             $stmt = $db->prepare('
                 UPDATE mikrotiks
                 SET current_status = \'online\'::varchar,
@@ -215,7 +259,7 @@ try {
                 ':id'               => $mikrotikId,
             ]);
 
-            // ─── Inserir no health_log (histórico) ───────────────────────────
+            // Inserir no health_log (histórico)
             $stmt = $db->prepare('
                 INSERT INTO health_log (mikrotik_id, cpu_load, memory_free, memory_total, temperature, voltage, uptime)
                 VALUES (:mikrotik_id, :cpu_load, :memory_free, :memory_total, :temperature, :voltage, :uptime)
@@ -261,12 +305,14 @@ try {
     }
 
     // ─── Resumo ───────────────────────────────────────────────────────────────
+    $elapsed = round(microtime(true) - $startTime, 2);
 
     logMessage("───────────────────────────────────────────────");
     logMessage("Resumo:");
     logMessage("  Total: {$total}");
     logMessage("  Sucesso: {$success}");
     logMessage("  Erros: {$errors}");
+    logMessage("  Tempo total: {$elapsed}s");
     logMessage("───────────────────────────────────────────────");
 
 } catch (\Throwable $e) {

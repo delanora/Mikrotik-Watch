@@ -96,13 +96,29 @@ apt-get install -y \
     postgresql \
     postgresql-client \
     iputils-ping \
-    php-cli \
-    php-pgsql \
-    php-curl \
-    php-mbstring \
-    php-xml \
-    php-zip \
     unzip
+
+# Detectar versão do Debian para decidir PHP
+DEBIAN_VERSION=$(grep VERSION_ID /etc/os-release | cut -d'"' -f2)
+
+if [[ "$DEBIAN_VERSION" -le 12 ]]; then
+    # Debian 12: PHP 8.4 não está nos repos padrão, usar Sury PPA
+    info "Debian 12 detectado. Instalando PHP 8.4 via Sury PPA..."
+    apt-get install -y apt-transport-https lsb-release ca-certificates
+    curl -sSL https://packages.sury.org/php/README.txt | bash 2>/dev/null || true
+    apt-get update
+fi
+
+apt-get install -y \
+    php8.4-cli \
+    php8.4-pgsql \
+    php8.4-curl \
+    php8.4-mbstring \
+    php8.4-xml \
+    php8.4-zip \
+    php8.4-sodium \
+    cronie \
+    libcap2-bin
 
 success "Dependências instaladas."
 
@@ -123,8 +139,8 @@ PHP_MINOR=$(php -r 'echo PHP_MINOR_VERSION;')
 echo "    ${PHP_FULL_VERSION}"
 
 if [[ "$PHP_MAJOR" -lt 8 ]] || \
-   [[ "$PHP_MAJOR" -eq 8 && "$PHP_MINOR" -lt 2 ]]; then
-    error "PHP ${PHP_VERSION} detectado. O projeto requer PHP 8.2 ou superior."
+   [[ "$PHP_MAJOR" -eq 8 && "$PHP_MINOR" -lt 4 ]]; then
+    error "PHP ${PHP_VERSION} detectado. O projeto requer PHP 8.4 ou superior."
 fi
 
 success "PHP ${PHP_VERSION} detectado e compatível."
@@ -302,11 +318,12 @@ info "Etapa 7/8: Configurando crontab para coletas..."
 mkdir -p /var/log/mikrotik-watch
 
 # Adicionar crontabs apenas se não existirem
+# Usar || true para evitar que set -euo pipefail mate o subshell quando crontab -l retorna erro
 CRON_COLLECT="* * * * * cd '${APP_DIR}/src' && php cron/collect.php >> /var/log/mikrotik-watch/cron.log 2>&1"
 CRON_NETWATCH="* * * * * cd '${APP_DIR}/src' && php cron/collect_netwatch.php >> /var/log/mikrotik-watch/cron.log 2>&1"
 CRON_PING="*/5 * * * * cd '${APP_DIR}/src' && php cron/collect_ping.php >> /var/log/mikrotik-watch/cron.log 2>&1"
 
-(crontab -l 2>/dev/null | grep -v 'collect.php' | grep -v 'collect_netwatch.php' | grep -v 'collect_ping.php'; echo "$CRON_COLLECT"; echo "$CRON_NETWATCH"; echo "$CRON_PING") | crontab -
+(crontab -l 2>/dev/null || true | grep -v 'collect.php' | grep -v 'collect_netwatch.php' | grep -v 'collect_ping.php'; echo "$CRON_COLLECT"; echo "$CRON_NETWATCH"; echo "$CRON_PING") | crontab -
 
 success "Crontab configurado."
 
@@ -395,6 +412,14 @@ EOF
         warn "Não foi possível iniciar o serviço automaticamente."
 
     success "Serviço systemd configurado."
+
+    # Conceder permissão ICMP (CAP_NET_RAW) ao www-data para ping
+    PING_BIN=$(which ping 2>/dev/null || echo "/usr/bin/ping")
+    if command -v setcap >/dev/null 2>&1 && [[ -f "$PING_BIN" ]]; then
+        setcap cap_net_raw+ep "$PING_BIN" 2>/dev/null && \
+            success "Permissão ICMP configurada em $PING_BIN" || \
+            warn "Não foi possível configurar CAP_NET_RAW. Ping pode falhar como www-data."
+    fi
 
 else
 

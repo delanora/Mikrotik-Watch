@@ -104,8 +104,16 @@ DEBIAN_VERSION=$(grep VERSION_ID /etc/os-release | cut -d'"' -f2)
 if [[ "$DEBIAN_VERSION" -le 12 ]]; then
     # Debian 12: PHP 8.4 não está nos repos padrão, usar Sury PPA
     info "Debian 12 detectado. Instalando PHP 8.4 via Sury PPA..."
-    apt-get install -y apt-transport-https lsb-release ca-certificates
-    curl -sSL https://packages.sury.org/php/README.txt | bash 2>/dev/null || true
+
+    apt-get install -y apt-transport-https lsb-release ca-certificates gnupg2
+
+    # Adicionar chave GPG do Sury
+    curl -fsSL https://packages.sury.org/php/apt.gpg | gpg --dearmor -o /usr/share/keyrings/deb.sury.org-php.gpg 2>/dev/null || true
+
+    # Adicionar repositório Sury
+    CODENAME=$(grep VERSION_CODENAME /etc/os-release | cut -d'=' -f2)
+    echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ ${CODENAME} main" > /etc/apt/sources.list.d/sury-php.list
+
     apt-get update
 fi
 
@@ -116,9 +124,13 @@ apt-get install -y \
     php8.4-mbstring \
     php8.4-xml \
     php8.4-zip \
-    php8.4-sodium \
-    cronie \
+    cron \
     libcap2-bin
+
+# Verificar se sodium está disponível (pode vir embutido no php8.4-common)
+if ! php -m | grep -qi sodium; then
+    apt-get install -y php8.4-sodium || warn "php8.4-sodium não encontrado. Verifique se sodium está disponível."
+fi
 
 success "Dependências instaladas."
 

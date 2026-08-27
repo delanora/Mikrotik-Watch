@@ -90,6 +90,7 @@ function syncNetwatchHosts(
             $apiByRef[(string) $refId] = $apiHost;
         } else {
             $skippedNoRef++;
+            logMessage("[{$mikrotikName}] ⚠️ Host sem .id: " . json_encode(array_keys($apiHost)));
         }
     }
 
@@ -97,6 +98,14 @@ function syncNetwatchHosts(
         logMessage("[{$mikrotikName}] ⚠️ {$skippedNoRef} hosts ignorados (sem campo .id na resposta da API)");
     }
     logMessage("[{$mikrotikName}] Sincronizando: " . count($apiByRef) . " hosts na API, " . count($existingByRef) . " existentes no banco");
+
+    // Log das chaves de referência para diagnóstico
+    if (count($apiByRef) > 0) {
+        logMessage("[{$mikrotikName}] API refs: " . implode(', ', array_keys($apiByRef)));
+    }
+    if (count($existingByRef) > 0) {
+        logMessage("[{$mikrotikName}] DB refs: " . implode(', ', array_keys($existingByRef)));
+    }
 
     // 1. Hosts novos na API → inserir no banco
     foreach ($apiByRef as $refId => $apiHost) {
@@ -324,9 +333,20 @@ try {
             $hostCount = is_array($apiHosts) ? count($apiHosts) : 0;
             logMessage("[{$mikrotikName}] Conectado. Hosts na API: {$hostCount} (tipo: " . gettype($apiHosts) . ")");
 
-            if ($hostCount > 0) {
+            // Log da estrutura bruta da resposta (primeiros 500 chars)
+            $rawJson = json_encode($apiHosts, JSON_UNESCAPED_SLASHES);
+            logMessage("[{$mikrotikName}] Resposta bruta (preview): " . substr($rawJson, 0, 500));
+
+            // Se a resposta for um objeto com chave 'data', extrair os hosts
+            if (isset($apiHosts['data']) && is_array($apiHosts['data'])) {
+                logMessage("[{$mikrotikName}] ⚠️ Resposta é objeto com chave 'data'. Extraindo hosts...");
+                $apiHosts = $apiHosts['data'];
+                $hostCount = count($apiHosts);
+            }
+
+            if ($hostCount > 0 && is_array($apiHosts)) {
                 $sample = reset($apiHosts);
-                logMessage("[{$mikrotikName}] Amostra do primeiro host: " . json_encode(array_keys($sample ?? [])));
+                logMessage("[{$mikrotikName}] Amostra do primeiro host: " . json_encode($sample, JSON_UNESCAPED_SLASHES));
             }
 
             // ─── Sincronizar hosts ────────────────────────────────────────────

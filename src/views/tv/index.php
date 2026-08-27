@@ -694,7 +694,7 @@ function tvMemPct($free, $total): ?float
                                     <span class="tv-host-comment"><?= htmlspecialchars($h['comment']) ?></span>
                                 <?php endif; ?>
                                 <div class="tv-host-bottom">
-                                    <span class="tv-host-client"><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></span>
+                                    <span class="tv-host-client"><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?> · <?= tvTimeAgo($h['status_since']) ?></span>
                                     <span class="tv-host-address"><?= htmlspecialchars($h['host_address']) ?></span>
                                 </div>
                             </div>
@@ -799,7 +799,7 @@ function tvMemPct($free, $total): ?float
                             return '<div class="tv-host-item">'
                                 + comment
                                 + '<div class="tv-host-bottom">'
-                                + '<span class="tv-host-client">' + esc(h.mikrotik_name || '\u2014') + '</span>'
+                                + '<span class="tv-host-client">' + esc(h.mikrotik_name || '\u2014') + ' \u00b7 ' + timeAgo(h.status_since) + '</span>'
                                 + '<span class="tv-host-address">' + esc(h.host_address) + '</span>'
                                 + '</div>'
                                 + '</div>';

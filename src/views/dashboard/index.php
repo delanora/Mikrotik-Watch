@@ -238,7 +238,7 @@ function timeAgo(?string $datetime): string
                             </td>
                             <td style="text-align: right;">
                                 <?php if (!empty($h['comment'])): ?>
-                                    <span style="background: var(--warning-bg); color: var(--warning); padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                                    <span class="fit-text" style="background: var(--warning-bg); color: var(--warning); padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
                                         <?= htmlspecialchars($h['comment']) ?>
                                     </span>
                                 <?php else: ?>
@@ -274,9 +274,15 @@ function timeAgo(?string $datetime): string
 .dashboard-table th:last-child {
     text-align: right;
     padding-right: 20px;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: unset;
+    white-space: nowrap;
+}
+
+.fit-text {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    max-width: 100%;
 }
 </style>
 
@@ -304,4 +310,15 @@ function runCollect() {
             btn.innerHTML = origText;
         });
 }
+
+// Auto-ajusta fonte para caber em 1 linha
+function fitText(el) {
+    var max = 12;
+    el.style.fontSize = max + 'px';
+    while (el.scrollWidth > el.clientWidth && max > 6) {
+        max -= 0.5;
+        el.style.fontSize = max + 'px';
+    }
+}
+document.querySelectorAll('.fit-text').forEach(fitText);
 </script>

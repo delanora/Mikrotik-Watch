@@ -103,72 +103,46 @@ try {
     logMessage("Equipamentos ping: {$total}");
 
     if ($total > 0) {
-        // Executar pings em paralelo usando background processes + arquivos temporários
-        $tmpDir = sys_get_temp_dir() . '/mikrotik-ping-' . getmypid();
-        mkdir($tmpDir, 0755, true);
-
-        $pids = [];
-        $tmpFiles = [];
+        // Executar pings sequencialmente usando exec() com timeout.
+        // Abordagem simples e confiável — cada ping leva no máximo ~6s
+        // (3 pacotes × 2s timeout), então 10 dispositivos = ~60s no pior caso.
 
         foreach ($devices as $device) {
-            $host = $device['host'];
-            $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '_', $host);
-            $tmpFile = $tmpDir . '/' . $safeName . '_' . $device['id'] . '.txt';
-            $tmpFiles[$device['id']] = $tmpFile;
-
-            // Disparar ping em background, redirecionando output para arquivo
-            $cmd = sprintf(
-                'ping -c 3 -W 2 %s > %s 2>&1',
-                escapeshellarg($host),
-                escapeshellarg($tmpFile)
-            );
-            $pid = 0;
-            exec("{$cmd} & echo $!", $pid);
-            $pids[$device['id']] = (int) ($pid[0] ?? 0);
-        }
-
-        // Aguardar todos os processos terminarem (timeout máximo: 10s)
-        $waitStart = microtime(true);
-        $maxWait = 10;
-        while (count($pids) > 0 && (microtime(true) - $waitStart) < $maxWait) {
-            foreach ($pids as $devId => $pid) {
-                if ($pid > 0 && !file_exists("/proc/{$pid}")) {
-                    unset($pids[$devId]);
-                }
-            }
-            if (count($pids) > 0) {
-                usleep(200000); // 200ms
-            }
-        }
-
-        // Matar processos restantes que ainda estão rodando
-        foreach ($pids as $pid) {
-            if ($pid > 0 && file_exists("/proc/{$pid}")) {
-                posix_kill($pid, 9);
-            }
-        }
-
-        // Processar resultados
-        foreach ($devices as $device) {
-            $tmpFile = $tmpFiles[$device['id']] ?? '';
-            $output = '';
-            if ($tmpFile && file_exists($tmpFile)) {
-                $output = file_get_contents($tmpFile);
-                @unlink($tmpFile);
-            }
-
             $host = $device['host'];
             $oldStatus = $device['current_status'];
+
+            // Executar ping e capturar saída diretamente
+            $output = '';
+            $exitCode = 0;
+            exec(sprintf('ping -c 3 -W 2 %s 2>&1', escapeshellarg($host)), $output, $exitCode);
+            $output = implode("\n", $output);
 
             // Analisar resultado do ping
             $rtt = null;
             $pingOk = false;
 
-            // Formato típico: rtt min/avg/max/mdev = 1.234/5.678/9.012/3.456 ms
-            if (preg_match('/min\/avg\/max\/mdev\s*=\s*[\d.]+\/([\d.]+)\//', $output, $matches)) {
-                $rtt = (int) round((float) $matches[1]);
-                $pingOk = true;
-            } elseif (str_contains($output, 'received') && !str_contains($output, '0 received')) {
+            if ($output !== '') {
+                // 1) Tentar extrair RTT via regex (mdev ou sem mdev)
+                if (preg_match('/avg\s*=\s*([\d.]+)/', $output, $matches)) {
+                    $rtt = (int) round((float) $matches[1]);
+                    $pingOk = true;
+                }
+                // 2) Fallback: verificar se houve pacotes recebidos
+                elseif (preg_match('/(\d+)\s+received/', $output, $matches)) {
+                    $received = (int) $matches[1];
+                    if ($received > 0) {
+                        $pingOk = true;
+                    }
+                }
+                // 3) Fallback: verificar se NÃO houve 100% packet loss
+                elseif (str_contains($output, 'packet loss')) {
+                    $pingOk = !str_contains($output, '100% packet loss');
+                }
+            }
+
+            // Se ping retornou sucesso mas não conseguimos detectar,
+            // usar o exit code como última tentativa
+            if (!$pingOk && $exitCode === 0 && $output !== '') {
                 $pingOk = true;
             }
 
@@ -209,9 +183,6 @@ try {
 
             $success++;
         }
-
-        // Limpar diretório temporário
-        @rmdir($tmpDir);
     }
 
     // Resumo

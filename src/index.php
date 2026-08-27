@@ -20,6 +20,15 @@ $config = require __DIR__ . '/config/config.php';
 // Configurar timezone
 date_default_timezone_set($config['app']['timezone']);
 
+// ─── Configurar diretório de sessão ─────────────────────────────────────────
+// Em systemd com ProtectSystem=strict, /tmp é read-only.
+// Usar diretório dentro do APP_DIR (que tem ReadWritePaths).
+$sessionDir = dirname(__DIR__) . '/sessions';
+if (!is_dir($sessionDir)) {
+    mkdir($sessionDir, 0770, true);
+}
+ini_set('session.save_path', $sessionDir);
+
 // ─── Exceções em modo debug ──────────────────────────────────────────────────
 if ($config['app']['debug']) {
     error_reporting(E_ALL);

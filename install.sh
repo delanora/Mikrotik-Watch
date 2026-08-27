@@ -355,6 +355,14 @@ if [[ ! -d "${APP_DIR}/src" ]]; then
     warn "O serviço não poderá iniciar até que esse diretório exista."
 fi
 
+# ─── Diretório de sessões ───────────────────────────────────────────────────
+
+# Criar diretório de sessões dentro do APP_DIR (protegido pelo ReadWritePaths do systemd)
+mkdir -p "${APP_DIR}/sessions"
+chmod 770 "${APP_DIR}/sessions"
+
+success "Diretório de sessões criado."
+
 # ─── Permissões ──────────────────────────────────────────────────────────────
 
 if id "www-data" >/dev/null 2>&1; then
@@ -367,6 +375,10 @@ if id "www-data" >/dev/null 2>&1; then
     if [[ -f "${APP_DIR}/.env" ]]; then
         chmod 600 "${APP_DIR}/.env"
     fi
+
+    # Diretório de sessões precisa ser gravável pelo www-data
+    chmod 770 "${APP_DIR}/sessions"
+    chown www-data:www-data "${APP_DIR}/sessions"
 
     success "Permissões configuradas."
 

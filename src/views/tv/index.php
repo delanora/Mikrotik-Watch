@@ -147,7 +147,7 @@ function tvMemPct($free, $total): ?float
             display: grid;
             grid-template-columns: 1fr 320px;
             gap: 14px;
-            padding: 0 28px 18px;
+            padding: 20px 28px 18px;
         }
 
         .tv-summary-left {

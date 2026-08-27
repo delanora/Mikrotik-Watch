@@ -417,9 +417,8 @@ function tvMemPct($free, $total): ?float
             border-radius: var(--radius-sm);
             padding: 10px 14px;
             display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .tv-host-comment {
@@ -430,20 +429,23 @@ function tvMemPct($free, $total): ?float
             border: 1px solid var(--warning-border);
             padding: 2px 10px;
             border-radius: var(--radius-sm);
-            display: inline-block;
+            display: block;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 100%;
-            min-width: 0;
+            width: 100%;
         }
 
-        .tv-host-right {
+        .tv-host-bottom {
             display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 3px;
-            flex-shrink: 0;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tv-host-client {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
         }
 
         .tv-host-address {
@@ -452,13 +454,6 @@ function tvMemPct($free, $total): ?float
             font-family: var(--font-mono);
             color: var(--text-muted);
             white-space: nowrap;
-        }
-
-        .tv-host-meta {
-            font-size: 11px;
-            color: var(--text-muted);
-            display: flex;
-            gap: 8px;
         }
 
         /* ─── No data ───────────────────────────────────────────── */
@@ -698,13 +693,9 @@ function tvMemPct($free, $total): ?float
                                 <?php if (!empty($h['comment'])): ?>
                                     <span class="tv-host-comment"><?= htmlspecialchars($h['comment']) ?></span>
                                 <?php endif; ?>
-                                <div class="tv-host-right">
+                                <div class="tv-host-bottom">
+                                    <span class="tv-host-client"><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></span>
                                     <span class="tv-host-address"><?= htmlspecialchars($h['host_address']) ?></span>
-                                    <div class="tv-host-meta">
-                                        <span><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></span>
-                                        <span>·</span>
-                                        <span>há <?= tvTimeAgo($h['status_since']) ?></span>
-                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -807,13 +798,9 @@ function tvMemPct($free, $total): ?float
                             var comment = h.comment ? '<span class="tv-host-comment">' + esc(h.comment) + '</span>' : '';
                             return '<div class="tv-host-item">'
                                 + comment
-                                + '<div class="tv-host-right">'
+                                + '<div class="tv-host-bottom">'
+                                + '<span class="tv-host-client">' + esc(h.mikrotik_name || '\u2014') + '</span>'
                                 + '<span class="tv-host-address">' + esc(h.host_address) + '</span>'
-                                + '<div class="tv-host-meta">'
-                                + '<span>' + esc(h.mikrotik_name || '\u2014') + '</span>'
-                                + '<span>\u00b7</span>'
-                                + '<span>h\u00e1 ' + timeAgo(h.status_since) + '</span>'
-                                + '</div>'
                                 + '</div>'
                                 + '</div>';
                         }).join('') + '</div>';

@@ -577,13 +577,13 @@ function tvMemPct($free, $total): ?float
             <span class="total"><?= (int)$deviceSummary['total'] ?> total</span>
         </div>
         <div class="tv-panel-body">
-            <?php if (empty($devices)): ?>
-                <div class="tv-empty">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <p>Nenhum dispositivo cadastrado</p>
-                </div>
-            <?php else: ?>
-                <div class="tv-devices" id="devices-grid">
+            <div class="tv-devices" id="devices-grid">
+                <?php if (empty($devices)): ?>
+                    <div class="tv-empty" style="grid-column: 1/-1;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <p>Nenhum dispositivo cadastrado</p>
+                    </div>
+                <?php else: ?>
                     <?php foreach ($devices as $d): ?>
                         <?php
                             $status = $d['current_status'];
@@ -642,8 +642,8 @@ function tvMemPct($free, $total): ?float
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 
@@ -659,30 +659,32 @@ function tvMemPct($free, $total): ?float
             </h2>
         </div>
         <div class="tv-panel-body">
-            <?php if (empty($downHosts)): ?>
-                <div class="tv-empty">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                    <p>Todos os hosts respondendo</p>
-                </div>
-            <?php else: ?>
-                <div class="tv-hosts" id="hosts-list">
-                    <?php foreach ($downHosts as $h): ?>
-                        <div class="tv-host-item">
-                            <div class="tv-host-top">
-                                <span class="tv-host-address"><?= htmlspecialchars($h['host_address']) ?></span>
-                                <?php if (!empty($h['comment'])): ?>
-                                    <span class="tv-host-comment"><?= htmlspecialchars($h['comment']) ?></span>
-                                <?php endif; ?>
+            <div id="hosts-list">
+                <?php if (empty($downHosts)): ?>
+                    <div class="tv-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        <p>Todos os hosts respondendo</p>
+                    </div>
+                <?php else: ?>
+                    <div class="tv-hosts">
+                        <?php foreach ($downHosts as $h): ?>
+                            <div class="tv-host-item">
+                                <div class="tv-host-top">
+                                    <span class="tv-host-address"><?= htmlspecialchars($h['host_address']) ?></span>
+                                    <?php if (!empty($h['comment'])): ?>
+                                        <span class="tv-host-comment"><?= htmlspecialchars($h['comment']) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="tv-host-meta">
+                                    <span><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></span>
+                                    <span>·</span>
+                                    <span>há <?= tvTimeAgo($h['status_since']) ?></span>
+                                </div>
                             </div>
-                            <div class="tv-host-meta">
-                                <span><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></span>
-                                <span>·</span>
-                                <span>há <?= tvTimeAgo($h['status_since']) ?></span>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 
@@ -727,6 +729,15 @@ function tvMemPct($free, $total): ?float
                     document.getElementById('last-sync').textContent = 'Última coleta: ' + data.lastCheck;
                 }
 
+                // Atualizar contadores nos headers dos painéis
+                var panelHeaders = document.querySelectorAll('.tv-panel-header .count');
+                if (panelHeaders.length >= 2) {
+                    panelHeaders[0].textContent = data.devices.offline;
+                    panelHeaders[0].style.display = data.devices.offline > 0 ? '' : 'none';
+                    panelHeaders[1].textContent = data.hosts.down;
+                    panelHeaders[1].style.display = data.hosts.down > 0 ? '' : 'none';
+                }
+
                 var grid = document.getElementById('devices-grid');
                 if (grid && data.deviceList) {
                     grid.innerHTML = data.deviceList.map(function(d) {
@@ -766,7 +777,7 @@ function tvMemPct($free, $total): ?float
                     if (data.downHosts.length === 0) {
                         hostsList.innerHTML = '<div class="tv-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><p>Todos os hosts respondendo</p></div>';
                     } else {
-                        hostsList.innerHTML = data.downHosts.map(function(h) {
+                        var html = '<div class="tv-hosts">' + data.downHosts.map(function(h) {
                             var comment = h.comment ? '<span class="tv-host-comment">' + esc(h.comment) + '</span>' : '';
                             return '<div class="tv-host-item">'
                                 + '<div class="tv-host-top">'
@@ -774,12 +785,13 @@ function tvMemPct($free, $total): ?float
                                 + comment
                                 + '</div>'
                                 + '<div class="tv-host-meta">'
-                                + '<span>' + esc(h.mikrotik_name || '—') + '</span>'
-                                + '<span>·</span>'
-                                + '<span>há ' + timeAgo(h.status_since) + '</span>'
+                                + '<span>' + esc(h.mikrotik_name || '\u2014') + '</span>'
+                                + '<span>\u00b7</span>'
+                                + '<span>h\u00e1 ' + timeAgo(h.status_since) + '</span>'
                                 + '</div>'
                                 + '</div>';
-                        }).join('');
+                        }).join('') + '</div>';
+                        hostsList.innerHTML = html;
                     }
                 }
 

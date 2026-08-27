@@ -417,15 +417,9 @@ function tvMemPct($free, $total): ?float
             border-radius: var(--radius-sm);
             padding: 10px 14px;
             display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .tv-host-top {
-            display: flex;
-            align-items: center;
             justify-content: space-between;
-            gap: 8px;
+            align-items: flex-start;
+            gap: 10px;
         }
 
         .tv-host-comment {
@@ -437,6 +431,19 @@ function tvMemPct($free, $total): ?float
             padding: 2px 10px;
             border-radius: var(--radius-sm);
             display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        .tv-host-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 3px;
+            flex-shrink: 0;
         }
 
         .tv-host-address {
@@ -444,6 +451,7 @@ function tvMemPct($free, $total): ?float
             font-size: 11px;
             font-family: var(--font-mono);
             color: var(--text-muted);
+            white-space: nowrap;
         }
 
         .tv-host-meta {
@@ -687,16 +695,16 @@ function tvMemPct($free, $total): ?float
                     <div class="tv-hosts">
                         <?php foreach ($downHosts as $h): ?>
                             <div class="tv-host-item">
-                                <div class="tv-host-top">
-                                    <?php if (!empty($h['comment'])): ?>
-                                        <span class="tv-host-comment"><?= htmlspecialchars($h['comment']) ?></span>
-                                    <?php endif; ?>
+                                <?php if (!empty($h['comment'])): ?>
+                                    <span class="tv-host-comment"><?= htmlspecialchars($h['comment']) ?></span>
+                                <?php endif; ?>
+                                <div class="tv-host-right">
                                     <span class="tv-host-address"><?= htmlspecialchars($h['host_address']) ?></span>
-                                </div>
-                                <div class="tv-host-meta">
-                                    <span><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></span>
-                                    <span>·</span>
-                                    <span>há <?= tvTimeAgo($h['status_since']) ?></span>
+                                    <div class="tv-host-meta">
+                                        <span><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></span>
+                                        <span>·</span>
+                                        <span>há <?= tvTimeAgo($h['status_since']) ?></span>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -798,14 +806,14 @@ function tvMemPct($free, $total): ?float
                         var html = '<div class="tv-hosts">' + data.downHosts.map(function(h) {
                             var comment = h.comment ? '<span class="tv-host-comment">' + esc(h.comment) + '</span>' : '';
                             return '<div class="tv-host-item">'
-                                + '<div class="tv-host-top">'
                                 + comment
+                                + '<div class="tv-host-right">'
                                 + '<span class="tv-host-address">' + esc(h.host_address) + '</span>'
-                                + '</div>'
                                 + '<div class="tv-host-meta">'
                                 + '<span>' + esc(h.mikrotik_name || '\u2014') + '</span>'
                                 + '<span>\u00b7</span>'
                                 + '<span>h\u00e1 ' + timeAgo(h.status_since) + '</span>'
+                                + '</div>'
                                 + '</div>'
                                 + '</div>';
                         }).join('') + '</div>';

@@ -127,8 +127,6 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     <div class="card-body" style="padding: 16px 24px;">
         <div class="charts-controls">
             <label>Período:</label>
-            <button class="period-btn" data-hours="1">1h</button>
-            <button class="period-btn" data-hours="12">12h</button>
             <button class="period-btn" data-days="1">1 dia</button>
             <button class="period-btn" data-days="7">7 dias</button>
             <button class="period-btn" data-days="15">15 dias</button>

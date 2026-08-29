@@ -124,6 +124,19 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 
 <!-- ─── Timeline de Disponibilidade ─────────────────────────────────────────── -->
 
+<div class="charts-controls" style="margin-bottom: 12px;">
+    <label>Período:</label>
+    <button class="period-btn active" data-days="7">7 dias</button>
+    <button class="period-btn" data-days="15">15 dias</button>
+    <button class="period-btn" data-days="30">30 dias</button>
+    <button class="period-btn" data-days="90">90 dias</button>
+    <span style="color: var(--text-muted); font-size: 12px;">ou</span>
+    <input type="date" id="chart-start" value="<?= date('Y-m-d', strtotime('-7 days')) ?>">
+    <span style="color: var(--text-muted); font-size: 12px;">até</span>
+    <input type="date" id="chart-end" value="<?= date('Y-m-d') ?>">
+    <button class="btn btn-secondary" id="chart-apply" style="font-size: 12px; height: 32px;">Aplicar</button>
+        </div>
+
 <div class="card uptime-bar-container">
     <div class="card-header">
         <h2>
@@ -132,20 +145,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
         </h2>
     </div>
     <div class="card-body">
-        <div class="charts-controls" style="margin-bottom: 12px;">
-            <label>Período:</label>
-            <button class="period-btn active" data-days="7">7 dias</button>
-            <button class="period-btn" data-days="15">15 dias</button>
-            <button class="period-btn" data-days="30">30 dias</button>
-            <button class="period-btn" data-days="90">90 dias</button>
-            <span style="color: var(--text-muted); font-size: 12px;">ou</span>
-            <input type="date" id="chart-start" value="<?= date('Y-m-d', strtotime('-7 days')) ?>">
-            <span style="color: var(--text-muted); font-size: 12px;">até</span>
-            <input type="date" id="chart-end" value="<?= date('Y-m-d') ?>">
-            <button class="btn btn-secondary" id="chart-apply" style="font-size: 12px; height: 32px;">Aplicar</button>
-        </div>
-
-        <div id="uptime-bar" class="uptime-bar">
+                <div id="uptime-bar" class="uptime-bar">
             <div class="uptime-segment unknown" style="width: 100%;" title="Carregando…"></div>
         </div>
         <div class="uptime-legend">

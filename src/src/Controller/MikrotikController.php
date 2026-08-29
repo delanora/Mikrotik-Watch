@@ -489,6 +489,33 @@ class MikrotikController
         $stmt->execute([':id' => $id]);
         $statusInfo = $stmt->fetch();
 
+        // Se não há eventos, usar health_log para inferir uptime.
+        // Se há dados de health_log, o device estava respondendo (online).
+        if (empty($events) && !empty($healthLogs)) {
+            $firstLog = $healthLogs[0];
+            $lastLog = end($healthLogs);
+
+            // O device estava online pelo menos do primeiro ao último log
+            $events[] = [
+                'status'    => 'online',
+                'started_at' => $firstLog['collected_at'],
+                'ended_at'   => $lastLog['collected_at'],
+            ];
+
+            // Se o device está offline agora e o último log é anterior a status_since,
+            // adicionar evento de offline
+            if ($statusInfo['current_status'] === 'offline' && $statusInfo['status_since'] !== null) {
+                $statusSince = $statusInfo['status_since'];
+                if ($statusSince > $lastLog['collected_at']) {
+                    $events[] = [
+                        'status'    => 'offline',
+                        'started_at' => $statusSince,
+                        'ended_at'   => null,
+                    ];
+                }
+            }
+        }
+
         // Processar dados para os gráficos
         $labels = [];
         $cpuData = [];

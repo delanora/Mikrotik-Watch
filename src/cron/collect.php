@@ -247,6 +247,9 @@ try {
                 }
             }
 
+            // Verificar se o status vai mudar (para criar evento)
+            $statusChanged = ($mikrotik['current_status'] !== 'online');
+
             // Atualizar mikrotiks (campos last_*)
             $stmt = $db->prepare('
                 UPDATE mikrotiks
@@ -276,6 +279,27 @@ try {
                 ':id'               => $mikrotikId,
             ]);
 
+            // Se o status mudou, criar evento em mikrotik_events
+            if ($statusChanged) {
+                // Fechar evento aberto anterior (se houver)
+                $stmt = $db->prepare('
+                    UPDATE mikrotik_events
+                    SET ended_at = now(),
+                        duration_seconds = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER
+                    WHERE mikrotik_id = :id AND ended_at IS NULL
+                ');
+                $stmt->execute([':id' => $mikrotikId]);
+
+                // Criar novo evento
+                $stmt = $db->prepare('
+                    INSERT INTO mikrotik_events (mikrotik_id, status, started_at)
+                    VALUES (:id, \'online\', now())
+                ');
+                $stmt->execute([':id' => $mikrotikId]);
+
+                logMessage("[{$name}] 📝 Evento registrado: offline → online");
+            }
+
             // Inserir no health_log (histórico)
             $stmt = $db->prepare('
                 INSERT INTO health_log (mikrotik_id, cpu_load, memory_free, memory_total, temperature, voltage, uptime)
@@ -299,6 +323,9 @@ try {
             $success++;
 
         } catch (\App\Exception\MikrotikApiException $e) {
+            // Verificar se o status vai mudar (para criar evento)
+            $statusChanged = ($mikrotik['current_status'] !== 'offline');
+
             // Conexão falhou → marcar offline
             $stmt = $db->prepare('
                 UPDATE mikrotiks
@@ -311,6 +338,27 @@ try {
                 WHERE id = :id
             ');
             $stmt->execute([':id' => $mikrotikId]);
+
+            // Se o status mudou, criar evento em mikrotik_events
+            if ($statusChanged) {
+                // Fechar evento aberto anterior (se houver)
+                $stmt = $db->prepare('
+                    UPDATE mikrotik_events
+                    SET ended_at = now(),
+                        duration_seconds = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER
+                    WHERE mikrotik_id = :id AND ended_at IS NULL
+                ');
+                $stmt->execute([':id' => $mikrotikId]);
+
+                // Criar novo evento
+                $stmt = $db->prepare('
+                    INSERT INTO mikrotik_events (mikrotik_id, status, started_at)
+                    VALUES (:id, \'offline\', now())
+                ');
+                $stmt->execute([':id' => $mikrotikId]);
+
+                logMessage("[{$name}] 📝 Evento registrado: online → offline");
+            }
 
             logMessage("[{$name}] ❌ OFFLINE: {$e->getMessage()}");
             $errors++;

@@ -8,7 +8,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 ?>
 
 <style>
-    .charts-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .charts-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
     .charts-controls label { font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
     .charts-controls input[type="date"] { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-secondary); color: var(--text-primary); font-family: var(--font-mono); }
     .charts-controls input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
@@ -18,7 +18,6 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     .chart-card { margin-bottom: 16px; }
     .chart-card .card-body { padding: 16px 20px; }
     .chart-wrap { position: relative; height: 220px; }
-    .uptime-bar-container { margin-bottom: 16px; }
     .uptime-bar { display: flex; height: 32px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
     .uptime-segment { position: relative; min-width: 2px; }
     .uptime-segment.online { background: var(--success); }
@@ -54,7 +53,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     </div>
 </div>
 
-<!-- Status Cards (originais) -->
+<!-- Status Cards -->
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon icon-accent">
@@ -124,20 +123,24 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 
 <!-- ─── Timeline de Disponibilidade ─────────────────────────────────────────── -->
 
-<div class="charts-controls" style="margin-bottom: 12px;">
-    <label>Período:</label>
-    <button class="period-btn active" data-days="7">7 dias</button>
-    <button class="period-btn" data-days="15">15 dias</button>
-    <button class="period-btn" data-days="30">30 dias</button>
-    <button class="period-btn" data-days="90">90 dias</button>
-    <span style="color: var(--text-muted); font-size: 12px;">ou</span>
-    <input type="date" id="chart-start" value="<?= date('Y-m-d', strtotime('-7 days')) ?>">
-    <span style="color: var(--text-muted); font-size: 12px;">até</span>
-    <input type="date" id="chart-end" value="<?= date('Y-m-d') ?>">
-    <button class="btn btn-secondary" id="chart-apply" style="font-size: 12px; height: 32px;">Aplicar</button>
+<div class="card" style="margin-bottom: 0;">
+    <div class="card-body" style="padding: 16px 24px;">
+        <div class="charts-controls">
+            <label>Período:</label>
+            <button class="period-btn active" data-days="7">7 dias</button>
+            <button class="period-btn" data-days="15">15 dias</button>
+            <button class="period-btn" data-days="30">30 dias</button>
+            <button class="period-btn" data-days="90">90 dias</button>
+            <span style="color: var(--text-muted); font-size: 12px;">ou</span>
+            <input type="date" id="chart-start" value="<?= date('Y-m-d', strtotime('-7 days')) ?>">
+            <span style="color: var(--text-muted); font-size: 12px;">até</span>
+            <input type="date" id="chart-end" value="<?= date('Y-m-d') ?>">
+            <button class="btn btn-secondary" id="chart-apply" style="font-size: 12px; height: 32px;">Aplicar</button>
         </div>
+    </div>
+</div>
 
-<div class="card uptime-bar-container">
+<div class="card" style="margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0;">
     <div class="card-header">
         <h2>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -145,7 +148,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
         </h2>
     </div>
     <div class="card-body">
-                <div id="uptime-bar" class="uptime-bar">
+        <div id="uptime-bar" class="uptime-bar">
             <div class="uptime-segment unknown" style="width: 100%;" title="Carregando…"></div>
         </div>
         <div class="uptime-legend">
@@ -162,7 +165,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 <?php if (!$isPing): ?>
 <!-- ─── Gráficos de Métricas ──────────────────────────────────────────────── -->
 
-<div class="card" style="margin-bottom: 16px;">
+<div class="card" style="margin-top: 16px; margin-bottom: 16px;">
     <div class="card-header">
         <h2>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>

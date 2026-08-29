@@ -10,8 +10,8 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 <style>
     .charts-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; justify-content: space-between; }
     .charts-controls label { font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
-    .charts-controls input[type="date"] { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-secondary); color: var(--text-primary); font-family: var(--font-mono); }
-    .charts-controls input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
+    .charts-controls input[type="datetime-local"] { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-secondary); color: var(--text-primary); font-family: var(--font-mono); }
+    .charts-controls input[type="datetime-local"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
     .period-btn { padding: 8px 20px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-secondary); color: var(--text-secondary); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
     .period-btn:hover { border-color: var(--accent-border); color: var(--accent); }
     .period-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
@@ -127,15 +127,17 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     <div class="card-body" style="padding: 16px 24px;">
         <div class="charts-controls">
             <label>Período:</label>
+            <button class="period-btn" data-hours="1">1h</button>
+            <button class="period-btn" data-hours="12">12h</button>
             <button class="period-btn" data-days="1">1 dia</button>
             <button class="period-btn" data-days="7">7 dias</button>
             <button class="period-btn" data-days="15">15 dias</button>
             <button class="period-btn" data-days="30">30 dias</button>
             <button class="period-btn" data-days="90">90 dias</button>
             <span style="color: var(--text-muted); font-size: 12px;">ou</span>
-            <input type="date" id="chart-start" value="<?= date('Y-m-d', strtotime('-7 days')) ?>">
+            <input type="datetime-local" id="chart-start" value="<?= date('Y-m-d\TH:i', strtotime('-7 days')) ?>">
             <span style="color: var(--text-muted); font-size: 12px;">até</span>
-            <input type="date" id="chart-end" value="<?= date('Y-m-d') ?>">
+            <input type="datetime-local" id="chart-end" value="<?= date('Y-m-d\TH:i') ?>">
             <button class="btn btn-secondary" id="chart-apply" style="font-size: 14px; height: 38px;">Aplicar</button>
         </div>
     </div>
@@ -282,8 +284,10 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     }
 
     function loadData() {
-        var start = encodeURIComponent(document.getElementById('chart-start').value);
-        var end = encodeURIComponent(document.getElementById('chart-end').value);
+        var rawStart = document.getElementById('chart-start').value.replace('T', ' ');
+        var rawEnd = document.getElementById('chart-end').value.replace('T', ' ');
+        var start = encodeURIComponent(rawStart);
+        var end = encodeURIComponent(rawEnd);
 
         if (!isPing) {
             ['cpu', 'mem', 'temp', 'volt'].forEach(function(k) {
@@ -317,9 +321,6 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     // interpretação como UTC que causaria offset de fuso horário.
     function parseDate(s) {
         var iso = s.replace(' ', 'T');
-        if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-            iso += 'T00:00:00';
-        }
         return new Date(iso).getTime();
     }
 
@@ -362,18 +363,17 @@ $deviceId = htmlspecialchars($mikrotik['id']);
             document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
             btn.classList.add('active');
             var end = new Date(); var start = new Date();
-            var isShort = !!btn.dataset.hours;
-            if (isShort) {
+            if (btn.dataset.hours) {
                 start.setHours(start.getHours() - parseInt(btn.dataset.hours));
             } else {
                 start.setDate(start.getDate() - parseInt(btn.dataset.days));
             }
-            // Para períodos curtos, enviar datetime completo com T (ISO)
             var fmt = function(d) {
                 return d.getFullYear() + '-' +
                     String(d.getMonth() + 1).padStart(2, '0') + '-' +
-                    String(d.getDate()).padStart(2, '0') +
-                    (isShort ? 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : '');
+                    String(d.getDate()).padStart(2, '0') + 'T' +
+                    String(d.getHours()).padStart(2, '0') + ':' +
+                    String(d.getMinutes()).padStart(2, '0');
             };
             document.getElementById('chart-start').value = fmt(start);
             document.getElementById('chart-end').value = fmt(end);

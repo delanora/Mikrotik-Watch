@@ -460,17 +460,54 @@ class MikrotikController
             $end = $defaultEnd;
         }
 
-        // Buscar dados de saúde
-        $stmt = $db->prepare('
-            SELECT cpu_load, memory_free, memory_total, temperature, voltage, uptime, collected_at
-            FROM health_log
-            WHERE mikrotik_id = :id
-              AND collected_at >= :start::timestamptz
-              AND collected_at <= :end::timestamptz
-            ORDER BY collected_at ASC
-        ');
-        $stmt->execute([':id' => $id, ':start' => $start, ':end' => $end]);
-        $healthLogs = $stmt->fetchAll();
+        // Determinar granularidade com base no período solicitado
+        $startDate = new \DateTimeImmutable($start);
+        $endDate = new \DateTimeImmutable($end);
+        $diffHours = ($endDate->getTimestamp() - $startDate->getTimestamp()) / 3600;
+
+        if ($diffHours <= 48) {
+            // Até 48h: dados brutos de health_log
+            $stmt = $db->prepare('
+                SELECT cpu_load, memory_free, memory_total, temperature, voltage, uptime, collected_at
+                FROM health_log
+                WHERE mikrotik_id = :id
+                  AND collected_at >= :start::timestamptz
+                  AND collected_at <= :end::timestamptz
+                ORDER BY collected_at ASC
+            ');
+            $stmt->execute([':id' => $id, ':start' => $start, ':end' => $end]);
+            $healthLogs = $stmt->fetchAll();
+        } elseif ($diffHours <= 2160) {
+            // 48h a 90d: dados agregados por hora de health_log_hourly
+            $stmt = $db->prepare('
+                SELECT
+                    avg_cpu_load AS cpu_load, avg_memory_free AS memory_free,
+                    avg_memory_total AS memory_total, avg_temperature AS temperature,
+                    avg_voltage AS voltage, hour_bucket AS collected_at
+                FROM health_log_hourly
+                WHERE mikrotik_id = :id
+                  AND hour_bucket >= :start::timestamptz
+                  AND hour_bucket <= :end::timestamptz
+                ORDER BY hour_bucket ASC
+            ');
+            $stmt->execute([':id' => $id, ':start' => $start, ':end' => $end]);
+            $healthLogs = $stmt->fetchAll();
+        } else {
+            // Acima de 90d: dados agregados por dia de health_log_daily
+            $stmt = $db->prepare('
+                SELECT
+                    avg_cpu_load AS cpu_load, avg_memory_free AS memory_free,
+                    avg_memory_total AS memory_total, avg_temperature AS temperature,
+                    avg_voltage AS voltage, day_bucket::timestamptz AS collected_at
+                FROM health_log_daily
+                WHERE mikrotik_id = :id
+                  AND day_bucket >= :start::date
+                  AND day_bucket <= :end::date
+                ORDER BY day_bucket ASC
+            ');
+            $stmt->execute([':id' => $id, ':start' => $start, ':end' => $end]);
+            $healthLogs = $stmt->fetchAll();
+        }
 
         // Buscar eventos de status (offline/online) no período
         $stmt = $db->prepare('

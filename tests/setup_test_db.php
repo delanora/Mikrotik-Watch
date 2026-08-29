@@ -68,6 +68,23 @@ try {
         echo "Arquivo de schema não encontrado: {$schemaFile}\n";
     }
 
+    // Aplicar migrations
+    $migrationsDir = dirname(__DIR__) . '/database/migrations';
+    if (is_dir($migrationsDir)) {
+        $migrations = glob($migrationsDir . '/*.sql');
+        sort($migrations);
+        foreach ($migrations as $migration) {
+            $name = basename($migration);
+            echo "Aplicando migration: {$name}...\n";
+            try {
+                $testPdo->exec(file_get_contents($migration));
+                echo "  OK\n";
+            } catch (PDOException $e) {
+                echo "  Aviso: " . $e->getMessage() . "\n";
+            }
+        }
+    }
+
     echo "\n=== Setup concluído! ===\n";
 
 } catch (PDOException $e) {

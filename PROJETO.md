@@ -90,7 +90,9 @@ Cron dispara → Acquire Lock (cron_locks) → Para cada Mikrotik ativo:
 | `users` | Usuários do painel (login, senha bcrypt) |
 | `clients` | Clientes cadastrados (agrupam equipamentos) |
 | `mikrotiks` | Equipamentos Mikrotik RouterOS |
-| `health_log` | Série temporal de métricas (CPU, memória, temperatura) |
+| `health_log` | Série temporal de métricas (CPU, memória, temperatura) — retido por 7 dias |
+| `health_log_hourly` | Agregação horária de health_log — retido por 90 dias |
+| `health_log_daily` | Agregação diária de health_log — retenção indefinida |
 | `netwatch_hosts` | Hosts monitorados via Netwatch |
 | `netwatch_events` | Transições de estado dos hosts (up↔down) |
 | `mikrotik_events` | Transições de estado dos equipamentos (online↔offline) |
@@ -131,7 +133,7 @@ WHERE job_name = 'netwatch_sync'
 - Se o lock está travado há mais de 15 minutos: adquire (timeout de segurança)
 - Se o lock está travado há menos de 15 minutos: não adquire, aborta ciclo
 
-**Jobs conhecidos**: `health_collect`, `netwatch_sync`, `ping_check`
+**Jobs conhecidos**: `health_collect`, `netwatch_sync`, `ping_check`, `health_aggregate`
 
 ## Endpoints
 
@@ -192,6 +194,40 @@ WHERE job_name = 'netwatch_sync'
 | `APP_ENV` | Ambiente atual | `production`, `development`, `testing` |
 | `APP_DEBUG` | Modo debug | `true`, `false` |
 
+## Retenção de Dados (health_log)
+
+O `health_log` armazena uma amostra por minuto por equipamento. Para evitar que a tabela cresça indefinidamente e otimizar consultas de longo período, o projeto implementa uma estratégia de três níveis de granularidade:
+
+| Nível | Tabela | Granularidade | Retenção | Uso |
+|-------|--------|---------------|----------|-----|
+| **Bruto** | `health_log` | 1 minuto | **7 dias** | Gráficos de períodos curtos (até 48h) |
+| **Horário** | `health_log_hourly` | 1 hora (AVG/MIN/MAX) | **90 dias** | Gráficos de períodos intermediários (3–90 dias) |
+| **Diário** | `health_log_daily` | 1 dia (AVG/MIN/MAX) | **Indefinido** | Gráficos de períodos longos (acima de 90 dias) |
+
+### Cron de Agregação
+
+```bash
+# Agregação e limpeza (1x por dia às 03:00)
+0 3 * * * cd /var/www/Mikrotik-Watch/src && php cron/aggregate_health.php >> /var/log/mikrotik-watch/cron.log 2>&1
+```
+
+O script `aggregate_health.php` executa em ordem:
+1. **Agregação horária**: `health_log > 24h` → `health_log_hourly` (INSERT ... ON CONFLICT DO UPDATE)
+2. **Agregação diária**: `health_log_hourly > 90d` → `health_log_daily`
+3. **Limpeza de brutos**: `DELETE health_log > 7d`
+4. **Limpeza de horários**: `DELETE health_log_hourly > 90d`
+5. `health_log_daily` não tem expiração (retenção indefinida)
+
+Cada passo é isolado com `try/catch` — uma falha não impede os demais.
+
+### Consultas por Período
+
+A rota `GET /mikrotiks/{id}/health-data` escolhe automaticamente a tabela de origem conforme o período solicitado:
+
+- **Até 48h**: `health_log` (dado bruto)
+- **48h a 90 dias**: `health_log_hourly`
+- **Acima de 90 dias**: `health_log_daily`
+
 ## Cron Jobs
 
 ### Equipamentos Mikrotik (device_type = 'mikrotik')
@@ -209,6 +245,13 @@ WHERE job_name = 'netwatch_sync'
 ```bash
 # Verificação por ICMP (a cada 5 minutos) — apenas dispositivos ping
 */5 * * * * cd /var/www/Mikrotik\ Watch/src && php cron/collect_ping.php >> /var/log/mikrotik-watch/cron.log 2>&1
+```
+
+### Agregação e Retenção (todos os equipamentos)
+
+```bash
+# Agregação de health_log (1x por dia às 03:00)
+0 3 * * * cd /var/www/Mikrotik-Watch/src && php cron/aggregate_health.php >> /var/log/mikrotik-watch/cron.log 2>&1
 ```
 
 **Importante**: Os crons de 1 minuto processam APENAS equipamentos com `device_type = 'mikrotik'`. O cron de ping processa APENAS equipamentos com `device_type = 'ping'`. Nunca misturam.
@@ -251,7 +294,8 @@ composer test:coverage     # Com cobertura
 | NetwatchSyncTest | 10 | Integração |
 | PingDeviceTest | 5 | Integração |
 | AdminViewerTest | 9 | Integração |
-| **Total** | **131** | |
+| HealthAggregationTest | 6 | Integração |
+| **Total** | **137** | |
 
 ## Dependências PHP
 

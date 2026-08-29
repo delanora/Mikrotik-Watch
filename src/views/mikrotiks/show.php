@@ -164,19 +164,18 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     </div>
 </div>
 
-<?php if (!$isPing): ?>
-<!-- ─── Gráficos ───────────────────────────────────────────────────────────── -->
+<!-- ─── Timeline de Disponibilidade (ANTES dos gráficos) ──────────────────── -->
 
-<div class="card" style="margin-bottom: 16px;">
+<div class="card uptime-bar-container">
     <div class="card-header">
         <h2>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            Métricas ao Longo do Tempo
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Disponibilidade
         </h2>
     </div>
     <div class="card-body">
-        <!-- Controles de período -->
-        <div class="charts-controls">
+        <!-- Controles de período (compartilhados com gráficos) -->
+        <div class="charts-controls" style="margin-bottom: 12px;">
             <label>Período:</label>
             <button class="period-btn active" data-days="7">7 dias</button>
             <button class="period-btn" data-days="15">15 dias</button>
@@ -189,6 +188,29 @@ $deviceId = htmlspecialchars($mikrotik['id']);
             <button class="btn btn-secondary" id="chart-apply" style="font-size: 12px; height: 32px;">Aplicar</button>
         </div>
 
+        <div id="uptime-bar" class="uptime-bar">
+            <div class="uptime-segment unknown" style="width: 100%;" title="Carregando…"></div>
+        </div>
+        <div class="uptime-legend">
+            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--success);"></div> Online</div>
+            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--danger);"></div> Offline</div>
+            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--text-muted); opacity: 0.4;"></div> Desconhecido</div>
+        </div>
+        <div id="uptime-stats" class="uptime-stats"></div>
+    </div>
+</div>
+
+<?php if (!$isPing): ?>
+<!-- ─── Gráficos de Métricas ──────────────────────────────────────────────── -->
+
+<div class="card" style="margin-bottom: 16px;">
+    <div class="card-header">
+        <h2>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Métricas ao Longo do Tempo
+        </h2>
+    </div>
+    <div class="card-body">
         <!-- CPU -->
         <div class="chart-card">
             <div class="card" style="margin-bottom: 0;">
@@ -244,32 +266,11 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 </div>
 <?php endif; ?>
 
-<!-- ─── Timeline de Disponibilidade ─────────────────────────────────────────── -->
-
-<div class="card uptime-bar-container">
-    <div class="card-header">
-        <h2>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            Disponibilidade
-        </h2>
-    </div>
-    <div class="card-body">
-        <div id="uptime-bar" class="uptime-bar">
-            <div class="uptime-segment unknown" style="width: 100%;" title="Carregando…"></div>
-        </div>
-        <div class="uptime-legend">
-            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--success);"></div> Online</div>
-            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--danger);"></div> Offline</div>
-            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--text-muted); opacity: 0.4;"></div> Desconhecido</div>
-        </div>
-        <div id="uptime-stats" class="uptime-stats"></div>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script>
 (function() {
     var deviceId = '<?= $deviceId ?>';
+    var isPing = <?= $isPing ? 'true' : 'false' ?>;
     var cpuChart = null, memChart = null, tempChart = null, voltChart = null;
 
     // ─── Cores do tema ──────────────────────────────────────────────────────
@@ -291,7 +292,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
     Chart.defaults.plugins.legend.labels.pointStyleWidth = 8;
 
-    function chartOpts(label, color, yMin, yMax, yTitle, fill) {
+    function chartOpts(label, color, yMin, yMax, yTitle) {
         return {
             type: 'line',
             options: {
@@ -317,7 +318,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
                         ticks: {
                             maxTicksLimit: 12,
                             maxRotation: 0,
-                            callback: function(v, i, ticks) {
+                            callback: function(v) {
                                 var d = new Date(this.getLabelForValue(v));
                                 return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' +
                                        d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -343,33 +344,42 @@ $deviceId = htmlspecialchars($mikrotik['id']);
                     pointRadius: 0,
                     pointHoverRadius: 4,
                     tension: 0.3,
-                    fill: fill !== false,
+                    fill: true,
                 }]
             }
         };
     }
 
-    // ─── Criar gráficos ─────────────────────────────────────────────────────
-    cpuChart = new Chart(document.getElementById('cpuChart'), chartOpts('CPU', accent, 0, 100, '%'));
-    memChart = new Chart(document.getElementById('memChart'), chartOpts('Memória', warning, 0, 100, '%'));
-    tempChart = new Chart(document.getElementById('tempChart'), chartOpts('Temperatura', danger, null, null, '°C'));
-    voltChart = new Chart(document.getElementById('voltChart'), chartOpts('Tensão', success, null, null, 'V'));
+    // ─── Criar gráficos (apenas para Mikrotik) ──────────────────────────────
+    if (!isPing) {
+        cpuChart = new Chart(document.getElementById('cpuChart'), chartOpts('CPU', accent, 0, 100, '%'));
+        memChart = new Chart(document.getElementById('memChart'), chartOpts('Memória', warning, 0, 100, '%'));
+        tempChart = new Chart(document.getElementById('tempChart'), chartOpts('Temperatura', danger, null, null, '°C'));
+        voltChart = new Chart(document.getElementById('voltChart'), chartOpts('Tensão', success, null, null, 'V'));
+    }
 
     // ─── Carregar dados ─────────────────────────────────────────────────────
     function loadData() {
         var start = document.getElementById('chart-start').value;
         var end = document.getElementById('chart-end').value;
 
-        // Mostrar loading
-        ['cpu', 'mem', 'temp', 'volt'].forEach(function(k) {
-            document.getElementById(k + '-chart-loading').style.display = 'flex';
-            document.getElementById(k + '-chart-wrap').style.display = 'none';
-        });
+        // Mostrar loading nos gráficos (apenas Mikrotik)
+        if (!isPing) {
+            ['cpu', 'mem', 'temp', 'volt'].forEach(function(k) {
+                document.getElementById(k + '-chart-loading').style.display = 'flex';
+                document.getElementById(k + '-chart-wrap').style.display = 'none';
+            });
+        }
 
         fetch('/mikrotiks/' + deviceId + '/health-data?start=' + start + '&end=' + end)
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 if (!data.success) return;
+
+                // Timeline de uptime (sempre, funciona para Mikrotik e Ping)
+                renderUptime(data.uptime, start, end);
+
+                if (isPing) return;
 
                 // Formatar labels
                 var labels = data.labels.map(function(dt) {
@@ -398,9 +408,6 @@ $deviceId = htmlspecialchars($mikrotik['id']);
                     document.getElementById(k + '-chart-loading').style.display = 'none';
                     document.getElementById(k + '-chart-wrap').style.display = 'block';
                 });
-
-                // Timeline de uptime
-                renderUptime(data.uptime, start, end);
             });
     }
 
@@ -442,13 +449,14 @@ $deviceId = htmlspecialchars($mikrotik['id']);
         // Stats
         var onlinePct = totalMs > 0 ? ((onlineMs / totalMs) * 100).toFixed(1) : '0.0';
         var offlinePct = totalMs > 0 ? ((offlineMs / totalMs) * 100).toFixed(1) : '0.0';
+        var sampleCount = isPing ? 0 : (cpuChart ? cpuChart.data.labels.length : 0);
         stats.innerHTML =
             '<span>Online: <strong style="color:' + success + ';">' + onlinePct + '%</strong></span>' +
             '<span>Offline: <strong style="color:' + danger + ';">' + offlinePct + '%</strong></span>' +
-            '<span>Total de amostras: <strong>' + (document.getElementById('cpuChart').data.labels.length) + '</strong></span>';
+            (sampleCount > 0 ? '<span>Total de amostras: <strong>' + sampleCount + '</strong></span>' : '');
     }
 
-    // ─── Eventos ────────────────────────────────────────────────────────────
+    // ─── Eventos de período ─────────────────────────────────────────────────
     document.querySelectorAll('.period-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });

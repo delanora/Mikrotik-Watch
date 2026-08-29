@@ -511,8 +511,8 @@ class MikrotikController
         $rangeStart = new \DateTimeImmutable($start);
         $rangeEnd = new \DateTimeImmutable($end);
 
-        // Estado inicial (assumir online se não há evento anterior)
-        $currentState = 'online';
+        // Estado inicial: usar o current_status real do equipamento
+        $currentState = $statusInfo['current_status'] ?? 'online';
         $currentFrom = $rangeStart;
 
         // Buscar primeiro evento antes do período para determinar estado inicial

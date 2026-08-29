@@ -273,6 +273,13 @@ $deviceId = htmlspecialchars($mikrotik['id']);
         };
     }
 
+    if (!isPing) {
+        cpuChart = new Chart(document.getElementById('cpuChart'), chartOpts('CPU', accent, 0, 100, '%'));
+        memChart = new Chart(document.getElementById('memChart'), chartOpts('Memória', warning, 0, 100, '%'));
+        tempChart = new Chart(document.getElementById('tempChart'), chartOpts('Temperatura', danger, null, null, '°C'));
+        voltChart = new Chart(document.getElementById('voltChart'), chartOpts('Tensão', success, null, null, 'V'));
+    }
+
     function loadData() {
         var start = document.getElementById('chart-start').value;
         var end = document.getElementById('chart-end').value;
@@ -356,16 +363,6 @@ $deviceId = htmlspecialchars($mikrotik['id']);
         loadData();
     });
 
-    // Aguardar DOM + Chart.js do CDN estarem prontos
-    window.addEventListener('load', function() {
-        // Criar gráficos depois que DOM e Chart.js estiverem prontos
-        if (!isPing) {
-            cpuChart = new Chart(document.getElementById('cpuChart'), chartOpts('CPU', accent, 0, 100, '%'));
-            memChart = new Chart(document.getElementById('memChart'), chartOpts('Memória', warning, 0, 100, '%'));
-            tempChart = new Chart(document.getElementById('tempChart'), chartOpts('Temperatura', danger, null, null, '°C'));
-            voltChart = new Chart(document.getElementById('voltChart'), chartOpts('Tensão', success, null, null, 'V'));
-        }
-        loadData();
-    });
+    loadData();
 })();
 </script>

@@ -140,7 +140,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     </div>
 </div>
 
-<div class="card" style="margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0;">
+<div class="card" style="margin-top: 16px;">
     <div class="card-header">
         <h2>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -165,7 +165,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 <?php if (!$isPing): ?>
 <!-- ─── Gráficos de Métricas ──────────────────────────────────────────────── -->
 
-<div class="card" style="margin-top: 16px; margin-bottom: 16px;">
+<div class="card" style="margin-bottom: 16px;">
     <div class="card-header">
         <h2>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>

@@ -54,6 +54,37 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     </div>
 </div>
 
+<!-- Status Cards (originais) -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon icon-accent">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3><?= htmlspecialchars($mikrotik['current_status'] ?? 'unknown') ?></h3>
+            <p>Status Atual</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3><?= htmlspecialchars($mikrotik['routeros_version'] ?? '—') ?></h3>
+            <p>RouterOS</p>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3><?= htmlspecialchars($mikrotik['board_name'] ?? '—') ?></h3>
+            <p>Board</p>
+        </div>
+    </div>
+</div>
+
 <!-- Detalhes do Equipamento -->
 <div class="card" style="margin-bottom: 16px;">
     <div class="card-header">
@@ -69,17 +100,6 @@ $deviceId = htmlspecialchars($mikrotik['id']);
                 <span class="peer-detail-label">Host</span>
                 <span class="peer-detail-mono"><?= htmlspecialchars($mikrotik['host']) ?></span>
             </div>
-            <div class="peer-detail">
-                <span class="peer-detail-label">Status</span>
-                <span class="peer-detail-value"><?php
-                    $sc = match($mikrotik['current_status'] ?? 'unknown') {
-                        'online' => '<span style="color: var(--success);">online</span>',
-                        'offline' => '<span style="color: var(--danger);">offline</span>',
-                        default => '<span style="color: var(--text-muted);">unknown</span>',
-                    };
-                    echo $sc;
-                ?></span>
-            </div>
             <?php if (!$isPing): ?>
             <div class="peer-detail">
                 <span class="peer-detail-label">Porta</span>
@@ -94,14 +114,6 @@ $deviceId = htmlspecialchars($mikrotik['id']);
                 <span class="peer-detail-mono"><?= htmlspecialchars($mikrotik['username']) ?></span>
             </div>
             <?php endif; ?>
-            <div class="peer-detail">
-                <span class="peer-detail-label">Board</span>
-                <span class="peer-detail-value"><?= htmlspecialchars($mikrotik['board_name'] ?? '—') ?></span>
-            </div>
-            <div class="peer-detail">
-                <span class="peer-detail-label">RouterOS</span>
-                <span class="peer-detail-value"><?= htmlspecialchars($mikrotik['routeros_version'] ?? '—') ?></span>
-            </div>
             <div class="peer-detail">
                 <span class="peer-detail-label">Cadastrado em</span>
                 <span class="peer-detail-value"><?= date('d/m/Y H:i', strtotime($mikrotik['created_at'])) ?></span>

@@ -287,13 +287,16 @@ try {
     }
 
     // ─── Disparar TODAS as requisições em paralelo ───────────────────────────
+    // Nota: maxConcurrency reduzido de 30 para 10 para evitar sobrecarga
+    // na API REST do Mikrotik (especialmente em dispositivos pequenos).
+    // O retry automático do batchRequest já ajuda a recuperar falhas.
 
     $results = \App\Service\MikrotikClient::batchGet(
         $batchRequests,
         timeout: $config['mikrotik']['default_timeout'],
         verifySsl: !$config['mikrotik']['allow_self_signed'],
         caCertPath: null,
-        maxConcurrency: 30,
+        maxConcurrency: 10,
     );
 
     logMessage("Requisições HTTP disparadas e coletadas em paralelo.");
@@ -366,9 +369,48 @@ try {
         } catch (MikrotikApiException $e) {
             // Falha na API netwatch NÃO significa que o Mikrotik está offline.
             // O status online/offline é gerenciado pelo collect.php (health).
-            // Aqui apenas registramos o erro de netwatch.
-            $stats['errors']++;
-            logMessage("[{$mikrotikName}] ERRO netwatch: {$e->getMessage()}");
+            // Retry individual: se o batch falhou para este device, tentar uma
+            // vez mais diretamente via MikrotikClient (sequencial, sem curl_multi).
+            $retryOk = false;
+            if (str_contains($e->getMessage(), 'cURL error') || str_contains($e->getMessage(), 'Timeout')) {
+                logMessage("[{$mikrotikName}] ⚠️ Retry individual para netwatch...");
+                try {
+                    usleep(500_000); // 500ms
+                    $retryClient = new \App\Service\MikrotikClient(
+                        host: $mikrotik['host'],
+                        username: $mikrotik['username'],
+                        password: $mikrotikIndex[$mikrotikId]['_password'] ?? '',
+                        port: (int) $mikrotik['port'],
+                        useSsl: (bool) $mikrotik['use_ssl'],
+                        verifySsl: !$config['mikrotik']['allow_self_signed'],
+                        timeout: $config['mikrotik']['default_timeout'] + 3,
+                    );
+                    $apiHosts = $retryClient->netwatch();
+                    $retryOk = true;
+
+                    logMessage("[{$mikrotikName}] ✅ Retry bem-sucedido. Hosts: " . count($apiHosts));
+
+                    // Sincronizar no retry
+                    $stmt = $db->prepare('
+                        SELECT id, host_address, mikrotik_ref_id, current_status, status_since
+                        FROM netwatch_hosts
+                        WHERE mikrotik_id = :mikrotik_id
+                    ');
+                    $stmt->execute([':mikrotik_id' => $mikrotikId]);
+                    $existingHosts = $stmt->fetchAll();
+
+                    syncNetwatchHosts($db, $mikrotikId, $mikrotikName, $apiHosts, $existingHosts, $stats);
+                    $stats['processed']++;
+
+                } catch (\Throwable $retryErr) {
+                    logMessage("[{$mikrotikName}] ❌ Retry também falhou: {$retryErr->getMessage()}");
+                }
+            }
+
+            if (!$retryOk) {
+                $stats['errors']++;
+                logMessage("[{$mikrotikName}] ERRO netwatch: {$e->getMessage()}");
+            }
 
         } catch (\Throwable $e) {
             $stats['errors']++;

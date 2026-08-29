@@ -254,14 +254,37 @@ class MikrotikClient
         int $timeout = 5,
         bool $verifySsl = true,
         ?string $caCertPath = null,
-        int $maxConcurrency = 20
+        int $maxConcurrency = 20,
+        int $maxRetries = 2
     ): array {
-        return self::batchRequest('GET', $requests, $timeout, $verifySsl, $caCertPath, $maxConcurrency);
+        return self::batchRequest('GET', $requests, $timeout, $verifySsl, $caCertPath, $maxConcurrency, $maxRetries);
+    }
+
+    /**
+     * Classifica o tipo de erro cURL para logging mais informativo.
+     */
+    private static function classifyCurlError(string $error): string
+    {
+        $lower = strtolower($error);
+        if (str_contains($lower, 'ssl') || str_contains($lower, 'certificate')) {
+            return "SSL error: {$error}";
+        }
+        if (str_contains($lower, 'timeout') || str_contains($lower, 'timed out')) {
+            return "Timeout: {$error}";
+        }
+        if (str_contains($lower, 'connection refused')) {
+            return "Connection refused: {$error}";
+        }
+        if (str_contains($lower, 'resolve') || str_contains($lower, 'dns')) {
+            return "DNS resolution failed: {$error}";
+        }
+        return "cURL error: {$error}";
     }
 
     /**
      * Executa múltiplas requisições HTTP em paralelo usando curl_multi.
      * Dispara todas as requisições simultaneamente e coleta os resultados depois.
+     * Inclui retry automático com backoff para requisições que falharam.
      *
      * @param string $method Método HTTP (tipicamente 'GET')
      * @param list<array{mikrotik_id: string, endpoint: string, host: string, port: int, use_ssl: bool, username: string, password: string}> $requests
@@ -273,7 +296,8 @@ class MikrotikClient
         int $timeout = 5,
         bool $verifySsl = true,
         ?string $caCertPath = null,
-        int $maxConcurrency = 20
+        int $maxConcurrency = 20,
+        int $maxRetries = 2
     ): array {
         if (empty($requests)) {
             return [];
@@ -284,86 +308,143 @@ class MikrotikClient
         $allResults = [];
 
         foreach ($batches as $batch) {
-            $mh = curl_multi_init();
-            $handles = []; // resultKey => curl handle
-            $results = [];
+            // ─── Primeira tentativa ─────────────────────────────────────────────
+            $results = self::executeBatch($method, $batch, $timeout, $verifySsl, $caCertPath);
 
-            // ─── Disparar TODAS as requisições do batch ────────────────────────
-            foreach ($batch as $req) {
-                $resultKey = $req['key'] ?? $req['mikrotik_id'] . '_' . md5($req['endpoint']);
-                $scheme = $req['use_ssl'] ? 'https' : 'http';
-                $url = "{$scheme}://{$req['host']}:{$req['port']}{$req['endpoint']}";
-
-                $ch = curl_init();
-                curl_setopt_array($ch, [
-                    CURLOPT_URL            => $url,
-                    CURLOPT_RETURNTRANSFER => true,
-                    CURLOPT_TIMEOUT        => $timeout,
-                    CURLOPT_CONNECTTIMEOUT => $timeout,
-                    CURLOPT_HEADER         => true,
-                    CURLOPT_CUSTOMREQUEST  => strtoupper($method),
-                    CURLOPT_SSL_VERIFYPEER => $verifySsl,
-                    CURLOPT_SSL_VERIFYHOST => $verifySsl ? 2 : 0,
-                    CURLOPT_HTTPHEADER     => [
-                        'Content-Type: application/json',
-                        'Accept: application/json',
-                        'Authorization: Basic ' . base64_encode("{$req['username']}:{$req['password']}"),
-                    ],
-                ]);
-
-                if ($caCertPath !== null && file_exists($caCertPath)) {
-                    curl_setopt($ch, CURLOPT_CAINFO, $caCertPath);
-                }
-
-                curl_multi_add_handle($mh, $ch);
-                $handles[$resultKey] = $ch;
-                $results[$resultKey] = null;
-            }
-
-            // ─── Executar todas em paralelo ─────────────────────────────────────
-            do {
-                $status = curl_multi_exec($mh, $active);
-                if ($active) {
-                    curl_multi_select($mh, 1);
-                }
-            } while ($active && $status === CURLM_OK);
-
-            // ─── Coletar resultados ────────────────────────────────────────────
-            foreach ($handles as $resultKey => $ch) {
-                $error = curl_error($ch);
-                $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-                $rawResponse = curl_multi_getcontent($ch);
-
-                if ($error !== '') {
-                    $results[$resultKey] = ['error' => "cURL error: {$error}"];
-                } elseif ($statusCode < 200 || $statusCode >= 300) {
-                    $body = $headerSize > 0 ? substr($rawResponse, $headerSize) : $rawResponse;
-                    $detail = '';
-                    $decoded = json_decode($body, true);
-                    if (is_array($decoded) && isset($decoded['detail'])) {
-                        $detail = ": {$decoded['detail']}";
-                    }
-                    $results[$resultKey] = ['error' => "Erro HTTP {$statusCode}{$detail}"];
-                } else {
-                    $body = $headerSize > 0 ? substr($rawResponse, $headerSize) : $rawResponse;
-                    if ($body === '' || $body === '[]') {
-                        $results[$resultKey] = ['data' => []];
-                    } else {
-                        $decoded = json_decode($body, true);
-                        $results[$resultKey] = ['data' => is_array($decoded) ? $decoded : []];
+            // ─── Retry: coletar falhas e tentar novamente ───────────────────────
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                $failedRequests = [];
+                foreach ($batch as $req) {
+                    $resultKey = $req['key'] ?? $req['mikrotik_id'] . '_' . md5($req['endpoint']);
+                    $r = $results[$resultKey] ?? null;
+                    if ($r === null || isset($r['error'])) {
+                        $failedRequests[] = $req;
                     }
                 }
 
-                curl_multi_remove_handle($mh, $ch);
-                curl_close($ch);
+                if (empty($failedRequests)) {
+                    break; // Todas as requisições foram bem-sucedidas
+                }
+
+                // Aguardar antes de retry (backoff: 1s na 1ª tentativa, 2s na 2ª)
+                usleep($attempt * 1_000_000);
+
+                $retryResults = self::executeBatch($method, $failedRequests, $timeout, $verifySsl, $caCertPath);
+
+                // Atualizar resultados apenas se o retry foi melhor
+                foreach ($failedRequests as $req) {
+                    $resultKey = $req['key'] ?? $req['mikrotik_id'] . '_' . md5($req['endpoint']);
+                    $retryR = $retryResults[$resultKey] ?? null;
+
+                    if ($retryR !== null && !isset($retryR['error'])) {
+                        $results[$resultKey] = $retryR;
+                    }
+                }
             }
 
-            curl_multi_close($mh);
             $allResults = array_merge($allResults, $results);
         }
 
         return $allResults;
+    }
+
+    /**
+     * Executa um batch de requisições via curl_multi.
+     *
+     * @return array<string, array{data?: array, error?: string}>
+     */
+    private static function executeBatch(
+        string $method,
+        array $batch,
+        int $timeout,
+        bool $verifySsl,
+        ?string $caCertPath
+    ): array {
+        $mh = curl_multi_init();
+        $handles = [];
+        $results = [];
+
+        foreach ($batch as $req) {
+            $resultKey = $req['key'] ?? $req['mikrotik_id'] . '_' . md5($req['endpoint']);
+            $scheme = $req['use_ssl'] ? 'https' : 'http';
+            $url = "{$scheme}://{$req['host']}:{$req['port']}{$req['endpoint']}";
+
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL            => $url,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => $timeout,
+                CURLOPT_CONNECTTIMEOUT => $timeout,
+                CURLOPT_HEADER         => true,
+                CURLOPT_CUSTOMREQUEST  => strtoupper($method),
+                CURLOPT_SSL_VERIFYPEER => $verifySsl,
+                CURLOPT_SSL_VERIFYHOST => $verifySsl ? 2 : 0,
+                CURLOPT_HTTPHEADER     => [
+                    'Content-Type: application/json',
+                    'Accept: application/json',
+                    'Authorization: Basic ' . base64_encode("{$req['username']}:{$req['password']}"),
+                ],
+            ]);
+
+            if ($caCertPath !== null && file_exists($caCertPath)) {
+                curl_setopt($ch, CURLOPT_CAINFO, $caCertPath);
+            }
+
+            curl_multi_add_handle($mh, $ch);
+            $handles[$resultKey] = $ch;
+            $results[$resultKey] = null;
+        }
+
+        // Executar todas em paralelo
+        do {
+            $status = curl_multi_exec($mh, $active);
+            if ($active) {
+                curl_multi_select($mh, 1);
+            }
+        } while ($active && $status === CURLM_OK);
+
+        // Coletar resultados (null-safe)
+        foreach ($handles as $resultKey => $ch) {
+            $error = curl_error($ch);
+            $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+            $rawResponse = curl_multi_getcontent($ch);
+
+            // Garantir que rawResponse é string (null-safe)
+            if ($rawResponse === null || $rawResponse === false) {
+                $rawResponse = '';
+            }
+
+            if ($error !== '') {
+                $results[$resultKey] = ['error' => self::classifyCurlError($error)];
+            } elseif ($statusCode < 200 || $statusCode >= 300) {
+                $body = ($rawResponse !== '' && $headerSize > 0)
+                    ? substr($rawResponse, $headerSize)
+                    : $rawResponse;
+                $detail = '';
+                $decoded = json_decode($body, true);
+                if (is_array($decoded) && isset($decoded['detail'])) {
+                    $detail = ": {$decoded['detail']}";
+                }
+                $results[$resultKey] = ['error' => "Erro HTTP {$statusCode}{$detail}"];
+            } else {
+                $body = ($rawResponse !== '' && $headerSize > 0)
+                    ? substr($rawResponse, $headerSize)
+                    : $rawResponse;
+                if ($body === '' || $body === '[]') {
+                    $results[$resultKey] = ['data' => []];
+                } else {
+                    $decoded = json_decode($body, true);
+                    $results[$resultKey] = ['data' => is_array($decoded) ? $decoded : []];
+                }
+            }
+
+            curl_multi_remove_handle($mh, $ch);
+            curl_close($ch);
+        }
+
+        curl_multi_close($mh);
+        return $results;
     }
 
     // ─── Getters ──────────────────────────────────────────────────────────────

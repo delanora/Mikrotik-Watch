@@ -8,11 +8,11 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 ?>
 
 <style>
-    .charts-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; }
+    .charts-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; justify-content: space-between; }
     .charts-controls label { font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
     .charts-controls input[type="date"] { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-secondary); color: var(--text-primary); font-family: var(--font-mono); }
     .charts-controls input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }
-    .period-btn { padding: 6px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-secondary); color: var(--text-secondary); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+    .period-btn { padding: 8px 20px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-secondary); color: var(--text-secondary); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
     .period-btn:hover { border-color: var(--accent-border); color: var(--accent); }
     .period-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
     .chart-card { margin-bottom: 16px; }
@@ -127,6 +127,9 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     <div class="card-body" style="padding: 16px 24px;">
         <div class="charts-controls">
             <label>Período:</label>
+            <button class="period-btn" data-hours="1">1h</button>
+            <button class="period-btn" data-hours="12">12h</button>
+            <button class="period-btn" data-days="1">1 dia</button>
             <button class="period-btn" data-days="7">7 dias</button>
             <button class="period-btn" data-days="15">15 dias</button>
             <button class="period-btn" data-days="30">30 dias</button>
@@ -135,7 +138,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
             <input type="date" id="chart-start" value="<?= date('Y-m-d', strtotime('-7 days')) ?>">
             <span style="color: var(--text-muted); font-size: 12px;">até</span>
             <input type="date" id="chart-end" value="<?= date('Y-m-d') ?>">
-            <button class="btn btn-secondary" id="chart-apply" style="font-size: 12px; height: 32px;">Aplicar</button>
+            <button class="btn btn-secondary" id="chart-apply" style="font-size: 14px; height: 38px;">Aplicar</button>
         </div>
     </div>
 </div>
@@ -177,8 +180,8 @@ $deviceId = htmlspecialchars($mikrotik['id']);
             <div class="card" style="margin-bottom: 0;">
                 <div class="card-header"><h2 style="font-size: 14px;">CPU (%)</h2></div>
                 <div class="card-body">
-                    <div id="cpu-chart-loading" class="chart-loading">Carregando dados…</div>
-                    <div class="chart-wrap" style="display:none;" id="cpu-chart-wrap"><canvas id="cpuChart"></canvas></div>
+                    <div id="cpu-chart-loading" class="chart-loading" style="display:none;">Carregando dados…</div>
+                    <div class="chart-wrap" id="cpu-chart-wrap"><canvas id="cpuChart"></canvas></div>
                 </div>
             </div>
         </div>
@@ -187,7 +190,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
                 <div class="card-header"><h2 style="font-size: 14px;">Memória (%)</h2></div>
                 <div class="card-body">
                     <div id="mem-chart-loading" class="chart-loading" style="display:none;">Carregando…</div>
-                    <div class="chart-wrap" style="display:none;" id="mem-chart-wrap"><canvas id="memChart"></canvas></div>
+                    <div class="chart-wrap" id="mem-chart-wrap"><canvas id="memChart"></canvas></div>
                 </div>
             </div>
         </div>
@@ -196,7 +199,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
                 <div class="card-header"><h2 style="font-size: 14px;">Temperatura (°C)</h2></div>
                 <div class="card-body">
                     <div id="temp-chart-loading" class="chart-loading" style="display:none;">Carregando…</div>
-                    <div class="chart-wrap" style="display:none;" id="temp-chart-wrap"><canvas id="tempChart"></canvas></div>
+                    <div class="chart-wrap" id="temp-chart-wrap"><canvas id="tempChart"></canvas></div>
                 </div>
             </div>
         </div>
@@ -205,7 +208,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
                 <div class="card-header"><h2 style="font-size: 14px;">Tensão (V)</h2></div>
                 <div class="card-body">
                     <div id="volt-chart-loading" class="chart-loading" style="display:none;">Carregando…</div>
-                    <div class="chart-wrap" style="display:none;" id="volt-chart-wrap"><canvas id="voltChart"></canvas></div>
+                    <div class="chart-wrap" id="volt-chart-wrap"><canvas id="voltChart"></canvas></div>
                 </div>
             </div>
         </div>
@@ -349,9 +352,12 @@ $deviceId = htmlspecialchars($mikrotik['id']);
         btn.addEventListener('click', function() {
             document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
             btn.classList.add('active');
-            var days = parseInt(btn.dataset.days);
             var end = new Date(); var start = new Date();
-            start.setDate(start.getDate() - days);
+            if (btn.dataset.hours) {
+                start.setHours(start.getHours() - parseInt(btn.dataset.hours));
+            } else {
+                start.setDate(start.getDate() - parseInt(btn.dataset.days));
+            }
             document.getElementById('chart-start').value = start.toISOString().split('T')[0];
             document.getElementById('chart-end').value = end.toISOString().split('T')[0];
             loadData();

@@ -127,7 +127,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     <div class="card-body" style="padding: 16px 24px;">
         <div class="charts-controls">
             <label>Período:</label>
-            <button class="period-btn active" data-days="7">7 dias</button>
+            <button class="period-btn" data-days="7">7 dias</button>
             <button class="period-btn" data-days="15">15 dias</button>
             <button class="period-btn" data-days="30">30 dias</button>
             <button class="period-btn" data-days="90">90 dias</button>
@@ -362,7 +362,5 @@ $deviceId = htmlspecialchars($mikrotik['id']);
         document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
         loadData();
     });
-
-    loadData();
 })();
 </script>

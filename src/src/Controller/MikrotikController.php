@@ -429,6 +429,143 @@ class MikrotikController
         }
     }
 
+    /**
+     * Retorna dados de saúde como JSON para os gráficos (AJAX).
+     * Parâmetros GET: start (ISO date), end (ISO date)
+     */
+    public function healthData(): void
+    {
+        $id = $this->extractId();
+        $db = $this->getDb();
+
+        // Verificar se o equipamento existe
+        $stmt = $db->prepare('SELECT id, device_type FROM mikrotiks WHERE id = :id AND active = true');
+        $stmt->execute([':id' => $id]);
+        $mikrotik = $stmt->fetch();
+
+        if ($mikrotik === false) {
+            $this->jsonResponse(404, ['success' => false, 'message' => 'Equipamento não encontrado.']);
+            return;
+        }
+
+        // Parâmetros de data
+        $defaultStart = date('Y-m-d', strtotime('-7 days'));
+        $defaultEnd = date('Y-m-d', strtotime('+1 day'));
+        $start = $_GET['start'] ?? $defaultStart;
+        $end = $_GET['end'] ?? $defaultEnd;
+
+        // Validar formato de data
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $end)) {
+            $start = $defaultStart;
+            $end = $defaultEnd;
+        }
+
+        // Buscar dados de saúde
+        $stmt = $db->prepare('
+            SELECT cpu_load, memory_free, memory_total, temperature, voltage, uptime, collected_at
+            FROM health_log
+            WHERE mikrotik_id = :id
+              AND collected_at >= :start::timestamptz
+              AND collected_at <= :end::timestamptz
+            ORDER BY collected_at ASC
+        ');
+        $stmt->execute([':id' => $id, ':start' => $start, ':end' => $end]);
+        $healthLogs = $stmt->fetchAll();
+
+        // Buscar eventos de status (offline/online) no período
+        $stmt = $db->prepare('
+            SELECT status, started_at, ended_at
+            FROM mikrotik_events
+            WHERE mikrotik_id = :id
+              AND started_at <= :end::timestamptz
+              AND (ended_at IS NULL OR ended_at >= :start::timestamptz)
+            ORDER BY started_at ASC
+        ');
+        $stmt->execute([':id' => $id, ':start' => $start, ':end' => $end]);
+        $events = $stmt->fetchAll();
+
+        // Buscar status atual para saber se está online agora
+        $stmt = $db->prepare('SELECT current_status, status_since FROM mikrotiks WHERE id = :id');
+        $stmt->execute([':id' => $id]);
+        $statusInfo = $stmt->fetch();
+
+        // Processar dados para os gráficos
+        $labels = [];
+        $cpuData = [];
+        $memData = [];
+        $tempData = [];
+        $voltData = [];
+
+        foreach ($healthLogs as $log) {
+            $labels[] = $log['collected_at'];
+            $cpuData[] = $log['cpu_load'] !== null ? (int) $log['cpu_load'] : null;
+            $memData[] = ($log['memory_free'] !== null && $log['memory_total'] !== null && $log['memory_total'] > 0)
+                ? round((($log['memory_total'] - $log['memory_free']) / $log['memory_total']) * 100, 1)
+                : null;
+            $tempData[] = $log['temperature'] !== null ? (float) $log['temperature'] : null;
+            $voltData[] = $log['voltage'] !== null ? (float) $log['voltage'] : null;
+        }
+
+        // Processar eventos para o timeline de uptime
+        $uptimeSegments = [];
+        $rangeStart = new \DateTimeImmutable($start);
+        $rangeEnd = new \DateTimeImmutable($end);
+
+        // Estado inicial (assumir online se não há evento anterior)
+        $currentState = 'online';
+        $currentFrom = $rangeStart;
+
+        // Buscar primeiro evento antes do período para determinar estado inicial
+        $stmt = $db->prepare('
+            SELECT status, started_at FROM mikrotik_events
+            WHERE mikrotik_id = :id AND started_at < :start::timestamptz
+            ORDER BY started_at DESC LIMIT 1
+        ');
+        $stmt->execute([':id' => $id, ':start' => $start]);
+        $prevEvent = $stmt->fetch();
+        if ($prevEvent) {
+            $currentState = $prevEvent['status'];
+            $currentFrom = $rangeStart;
+        }
+
+        foreach ($events as $event) {
+            $eventStart = new \DateTimeImmutable($event['started_at']);
+
+            // Se o estado atual continua até o início deste evento, fechar o segmento
+            if ($eventStart > $currentFrom) {
+                $segmentEnd = $eventStart > $rangeEnd ? $rangeEnd : $eventStart;
+                $uptimeSegments[] = [
+                    'status' => $currentState,
+                    'from'   => $currentFrom->format('Y-m-d\TH:i:s'),
+                    'to'     => $segmentEnd->format('Y-m-d\TH:i:s'),
+                ];
+            }
+
+            $currentState = $event['status'];
+            $currentFrom = $eventStart < $rangeStart ? $rangeStart : $eventStart;
+        }
+
+        // Fechar último segmento
+        if ($currentFrom < $rangeEnd) {
+            $uptimeSegments[] = [
+                'status' => $currentState,
+                'from'   => $currentFrom->format('Y-m-d\TH:i:s'),
+                'to'     => $rangeEnd->format('Y-m-d\TH:i:s'),
+            ];
+        }
+
+        $this->jsonResponse(200, [
+            'success'  => true,
+            'labels'   => $labels,
+            'cpu'      => $cpuData,
+            'memory'   => $memData,
+            'temp'     => $tempData,
+            'voltage'  => $voltData,
+            'uptime'   => $uptimeSegments,
+            'status'   => $statusInfo['current_status'] ?? 'unknown',
+        ]);
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private function extractId(): string

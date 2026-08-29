@@ -69,22 +69,41 @@ function randomPast(int $minMinutes, int $maxMinutes): string
     return date('Y-m-d H:i:s', time() - ($minutes * 60));
 }
 
-function randomFuture(int $minMinutes, int $maxMinutes): string
-{
-    $minutes = random_int($minMinutes, $maxMinutes);
-    return date('Y-m-d H:i:s', time() + ($minutes * 60));
-}
+// ─── Criar 30 Clientes ─────────────────────────────────────────────────────
 
-// ─── Criar Clientes ─────────────────────────────────────────────────────────
-
-echo "Criando clientes...\n";
+echo "Criando 30 clientes...\n";
 
 $clients = [
-    ['name' => 'Empresa ABC Ltda',      'telegram' => null],
-    ['name' => 'ISP ConectaNet',        'telegram' => -1001234567890],
-    ['name' => 'Escola Municipal Central', 'telegram' => null],
-    ['name' => 'Hospital São Lucas',    'telegram' => -1009876543210],
-    ['name' => 'Condomínio Parque Azul', 'telegram' => null],
+    ['name' => 'Empresa ABC Ltda',            'telegram' => null],
+    ['name' => 'ISP ConectaNet',              'telegram' => -1001234567890],
+    ['name' => 'Escola Municipal Central',     'telegram' => null],
+    ['name' => 'Hospital São Lucas',          'telegram' => -1009876543210],
+    ['name' => 'Condomínio Parque Azul',       'telegram' => null],
+    ['name' => 'Loja Virtual ShopMax',         'telegram' => -1001112223330],
+    ['name' => 'Restaurante Sabor & Arte',     'telegram' => null],
+    ['name' => 'Posto de Saúde Vila Nova',     'telegram' => -1004445556660],
+    ['name' => 'Indústria MetalPro',           'telegram' => null],
+    ['name' => 'Hotel Pousada Estrela',        'telegram' => -1007778889990],
+    ['name' => 'Farmácia Popular',             'telegram' => null],
+    ['name' => 'Clínica OdontoVida',           'telegram' => -1001110002220],
+    ['name' => 'Autopeças Brasil',             'telegram' => null],
+    ['name' => 'Escola Técnica EngenhoTech',   'telegram' => -1003334445550],
+    ['name' => 'Supermercado Família',         'telegram' => null],
+    ['name' => 'Padaria Pão Dourado',          'telegram' => null],
+    ['name' => 'Oficina Mecânica MotorMax',    'telegram' => -1006667778880],
+    ['name' => 'Petshop Amigo Animal',         'telegram' => null],
+    ['name' => 'Academia Corpo Forte',         'telegram' => -1009990001110],
+    ['name' => 'Escritório Advocacia Lima',    'telegram' => null],
+    ['name' => 'Construtora Alvenaria',        'telegram' => -1002223334440],
+    ['name' => 'Transportadora Rápida',        'telegram' => null],
+    ['name' => 'Escola de Idiomas Global',      'telegram' => -1005556667770],
+    ['name' => 'Salão de Beleza Glamour',      'telegram' => null],
+    ['name' => 'Estúdio Fotografia Capture',   'telegram' => -1008889990000],
+    ['name' => 'Serralheria Ferroarte',         'telegram' => null],
+    ['name' => 'Lavanderia Express',            'telegram' => -1001112224440],
+    ['name' => 'Clinica Veterinária AnimalCare','telegram' => null],
+    ['name' => 'Bar & Grill Noite Viva',       'telegram' => -1003335557770],
+    ['name' => 'Imobiliária CasaBem',          'telegram' => null],
 ];
 
 $clientIds = [];
@@ -94,35 +113,65 @@ foreach ($clients as $client) {
     $clientIds[] = $id;
     $stmt = $db->prepare('INSERT INTO clients (id, name, telegram_group_id) VALUES (:id, :name, :tg)');
     $stmt->execute([':id' => $id, ':name' => $client['name'], ':tg' => $client['telegram']]);
-    echo "  → {$client['name']}\n";
 }
 
 echo "✓ " . count($clients) . " clientes criados\n";
 
-// ─── Criar Equipamentos Mikrotik ────────────────────────────────────────────
+// ─── Criar Equipamentos Mikrotik (18 = dobro dos 9 originais) ───────────────
 
 echo "Criando equipamentos Mikrotik...\n";
 
-$mikrotikDevices = [
-    // Empresa ABC
-    ['client_idx' => 0, 'name' => 'RB3011 - Sede',       'host' => '10.0.1.1',    'port' => 80,  'ssl' => false, 'user' => 'admin', 'pass' => 'admin123',  'status' => 'online',  'cpu' => 12, 'mem_free' => 134217728, 'mem_total' => 268435456, 'temp' => 41.0, 'volt' => 24.1, 'board' => 'RB3011UiAS',  'ros' => '7.14.3'],
-    ['client_idx' => 0, 'name' => 'hAP ac² - Recepção',   'host' => '10.0.1.2',    'port' => 80,  'ssl' => false, 'user' => 'admin', 'pass' => 'admin123',  'status' => 'online',  'cpu' => 5,  'mem_free' => 83886080,  'mem_total' => 134217728, 'temp' => 35.5, 'volt' => 12.0, 'board' => 'hEX ac',      'ros' => '7.13.4'],
+// Placas e versões disponíveis para randomizar
+$boards = ['RB3011UiAS', 'hEX ac', 'CCR1036-12G-4S', 'RB750Gr3', 'hEX s', 'RB4011iGS+', 'CCR1009-8G-1S', 'cAP ac', 'hEX S', 'CCR1016-12G-4S', 'RB2011UiAS', 'RB1100AHx4', 'hAP ac³', 'ChR 1009'];
+$rosVersions = ['7.14.3', '7.13.4', '7.12.1', '7.11.2', '7.9.3', '7.14.1', '7.8.1', '7.16.2'];
+$statuses = ['online', 'online', 'online', 'online', 'offline', 'unknown'];
+$passChoices = ['admin123', 'felipe29', 'mikrotik', 'cond2024', 'escola2024', 'hospital!'];
 
-    // ISP ConectaNet
-    ['client_idx' => 1, 'name' => 'CCR1036 - PoP Principal', 'host' => '45.4.112.13', 'port' => 80, 'ssl' => false, 'user' => 'teste',  'pass' => 'felipe29',  'status' => 'online',  'cpu' => 3,  'mem_free' => 190279680, 'mem_total' => 268435456, 'temp' => 42.0, 'volt' => 12.3, 'board' => 'CCR1036-12G-4S', 'ros' => '7.12.1'],
-    ['client_idx' => 1, 'name' => 'RB750Gr3 - Cliente XYZ', 'host' => '45.4.112.18', 'port' => 80, 'ssl' => false, 'user' => 'admin',  'pass' => 'mikrotik',  'status' => 'online',  'cpu' => 18, 'mem_free' => 41943040,  'mem_total' => 67108864,  'temp' => 38.0, 'volt' => null, 'board' => 'RB750Gr3',    'ros' => '7.11.2'],
-    ['client_idx' => 1, 'name' => 'hEX s - Filial Norte',   'host' => '189.55.12.34','port' => 443,'ssl' => true,  'user' => 'admin',  'pass' => 'admin123',  'status' => 'offline', 'cpu' => 0,  'mem_free' => 0,         'mem_total' => 67108864,  'temp' => null, 'volt' => null, 'board' => 'hEX s',       'ros' => '7.9.3'],
-
-    // Escola
-    ['client_idx' => 2, 'name' => 'RB4011 - Escola',       'host' => '172.16.0.1',  'port' => 80,  'ssl' => false, 'user' => 'admin', 'pass' => 'escola2024', 'status' => 'online',  'cpu' => 8,  'mem_free' => 201326592, 'mem_total' => 536870912, 'temp' => 33.0, 'volt' => 48.2, 'board' => 'RB4011iGS+',  'ros' => '7.14.3'],
-
-    // Hospital
-    ['client_idx' => 3, 'name' => 'CCR1009 - Hospital',     'host' => '10.10.0.1',   'port' => 443, 'ssl' => true,  'user' => 'admin', 'pass' => 'hospital!',  'status' => 'online',  'cpu' => 22, 'mem_free' => 134217728, 'mem_total' => 536870912, 'temp' => 48.5, 'volt' => 12.1, 'board' => 'CCR1009-8G-1S', 'ros' => '7.14.1'],
-    ['client_idx' => 3, 'name' => 'cAP ac - Enfermaria',    'host' => '10.10.0.10',  'port' => 80,  'ssl' => false, 'user' => 'admin', 'pass' => 'hospital!',  'status' => 'unknown', 'cpu' => 0,  'mem_free' => 0,         'mem_total' => 33554432,  'temp' => null, 'volt' => null, 'board' => 'cAP ac',      'ros' => '7.8.1'],
-
-    // Condomínio
-    ['client_idx' => 4, 'name' => 'RB760iGS - Portaria',   'host' => '192.168.10.1','port' => 80,  'ssl' => false, 'user' => 'admin', 'pass' => 'cond2024',   'status' => 'online',  'cpu' => 2,  'mem_free' => 41943040,  'mem_total' => 67108864,  'temp' => 29.0, 'volt' => null, 'board' => 'hEX S',       'ros' => '7.13.4'],
+$mikrotikDevices = [];
+$hosts = [
+    '10.0.1', '10.0.2', '172.16.0', '172.16.1', '192.168.1', '192.168.10',
+    '45.4.112', '189.55.12', '10.10.0', '10.20.0', '172.20.0', '192.168.50',
 ];
+
+$names = [
+    'RB3011 - Sede', 'hAP ac² - Recepção', 'CCR1036 - PoP Principal', 'RB750Gr3 - Filial',
+    'hEX s - Norte', 'RB4011 - Unidade 2', 'CCR1009 - Datacenter', 'cAP ac - Ponto WiFi',
+    'RB760iGS - Portaria', 'CCR1016 - Backbone', 'RB2011 - Backup', 'RB1100AHx4 - Core',
+    'hAP ac³ - Sala 3', 'ChR 1009 - Edge', 'RB3011 - Agência 2', 'hEX s - Agência 3',
+    'RB4011 - TOR Switch', 'CCR1009 - PoP 2',
+];
+
+for ($i = 0; $i < 18; $i++) {
+    $clientIdx = $i % count($clients);
+    $subnet = $hosts[$i % count($hosts)];
+    $lastOctet = ($i % 250) + 1;
+    $port = ($i % 3 === 0) ? 443 : 80;
+    $ssl = ($port === 443);
+    $status = $statuses[array_rand($statuses)];
+    $cpu = ($status === 'online') ? random_int(1, 35) : 0;
+    $memTotal = [67108864, 134217728, 268435456, 536870912][$i % 4];
+    $memFree = ($status === 'online') ? random_int(intval($memTotal * 0.2), intval($memTotal * 0.8)) : 0;
+    $temp = ($status === 'online') ? round(random_int(28, 55) + 0.0, 1) : null;
+    $volt = ($status === 'online') ? round(random_int(100, 485) / 10, 1) : null;
+
+    $mikrotikDevices[] = [
+        'client_idx' => $clientIdx,
+        'name'       => $names[$i],
+        'host'       => "{$subnet}.{$lastOctet}",
+        'port'       => $port,
+        'ssl'        => $ssl,
+        'user'       => 'admin',
+        'pass'       => $passChoices[$i % count($passChoices)],
+        'status'     => $status,
+        'cpu'        => $cpu,
+        'mem_free'   => $memFree,
+        'mem_total'  => $memTotal,
+        'temp'       => $temp,
+        'volt'       => $volt,
+        'board'      => $boards[$i % count($boards)],
+        'ros'        => $rosVersions[$i % count($rosVersions)],
+    ];
+}
 
 $mikrotikIds = [];
 
@@ -130,10 +179,9 @@ foreach ($mikrotikDevices as $dev) {
     $id = uuid();
     $mikrotikIds[] = $id;
 
-    // Criptografar senha (formato hex para BYTEA do PostgreSQL)
     $encrypted = $crypto->encrypt($dev['pass']);
     $encryptedBytes = base64_decode($encrypted, true);
-    $hexPassword = '\x' . bin2hex($encryptedBytes);
+    $hexPassword = '\\x' . bin2hex($encryptedBytes);
 
     $stmt = $db->prepare('
         INSERT INTO mikrotiks (
@@ -149,7 +197,6 @@ foreach ($mikrotikDevices as $dev) {
         )
     ');
 
-    $now = date('Y-m-d H:i:s');
     $stmt->execute([
         ':id'                 => $id,
         ':client_id'          => $clientIds[$dev['client_idx']],
@@ -161,8 +208,8 @@ foreach ($mikrotikDevices as $dev) {
         ':password_encrypted' => $hexPassword,
         ':device_type'        => 'mikrotik',
         ':status'             => $dev['status'],
-        ':status_since'       => $dev['status'] === 'offline' ? randomPast(30, 300) : randomPast(100, 5000),
-        ':last_checked'       => randomPast(0, 2),
+        ':status_since'       => $dev['status'] === 'offline' ? randomPast(5, 120) : randomPast(60, 5000),
+        ':last_checked'       => randomPast(0, 3),
         ':cpu'                => $dev['cpu'],
         ':mem_free'           => $dev['mem_free'],
         ':mem_total'          => $dev['mem_total'],
@@ -171,28 +218,43 @@ foreach ($mikrotikDevices as $dev) {
         ':board'              => $dev['board'],
         ':ros'                => $dev['ros'],
     ]);
-
-    echo "  → {$dev['name']} ({$dev['host']}) [{$dev['status']}]\n";
 }
 
 echo "✓ " . count($mikrotikDevices) . " equipamentos Mikrotik criados\n";
 
-// ─── Criar Dispositivos Ping ────────────────────────────────────────────────
+// ─── Criar Dispositivos Ping (20 = dobro dos 10 originais) ─────────────────
 
 echo "Criando dispositivos ping...\n";
 
-$pingDevices = [
-    ['client_idx' => 0, 'name' => 'Camera - Estacionamento', 'host' => '10.0.1.100',  'status' => 'online',  'rtt' => 3],
-    ['client_idx' => 0, 'name' => 'Camera - Entrada',        'host' => '10.0.1.101',  'status' => 'online',  'rtt' => 5],
-    ['client_idx' => 1, 'name' => 'Servidor - CLIENTE XYZ',  'host' => '45.4.112.50', 'status' => 'online',  'rtt' => 12],
-    ['client_idx' => 1, 'name' => 'AP - Ponto Hotel',        'host' => '189.55.12.99','status' => 'offline', 'rtt' => null],
-    ['client_idx' => 2, 'name' => 'NAS - Backup Escola',     'host' => '172.16.0.50', 'status' => 'online',  'rtt' => 2],
-    ['client_idx' => 3, 'name' => 'Sistema - Prontuário',    'host' => '10.10.0.200', 'status' => 'online',  'rtt' => 1],
-    ['client_idx' => 3, 'name' => 'Impressora - Recepção',   'host' => '10.10.0.201', 'status' => 'offline', 'rtt' => null],
-    ['client_idx' => 4, 'name' => 'Interfone - Bloco A',     'host' => '192.168.10.50','status' => 'online', 'rtt' => 4],
-    ['client_idx' => 4, 'name' => 'Interfone - Bloco B',     'host' => '192.168.10.51','status' => 'online', 'rtt' => 6],
-    ['client_idx' => 4, 'name' => 'Gerador - Área Comum',    'host' => '192.168.10.200','status' => 'unknown','rtt' => null],
+$pingNames = [
+    'Camera - Estacionamento', 'Camera - Entrada', 'Camera - Fundos', 'Camera - Salão',
+    'Servidor - Backup', 'NAS - Arquivos', 'AP - Ponto Central', 'AP - Ponto Norte',
+    'AP - Ponto Sul', 'Impressora - Recepção', 'Impressora - Escritório', 'Interfone - Bloco A',
+    'Interfone - Bloco B', 'Interfone - Bloco C', 'Gerador - Área Comum', 'UPS - Rack Principal',
+    'Switch - Andar 1', 'Switch - Andar 2', 'Notebook - Direção', 'Tablet - Recepção',
 ];
+$pingHosts = [
+    '10.0.1.100', '10.0.1.101', '10.0.1.102', '10.0.1.103',
+    '45.4.112.50', '45.4.112.51', '172.16.0.100', '172.16.0.101',
+    '172.16.1.100', '10.10.0.200', '10.10.0.201', '192.168.10.50',
+    '192.168.10.51', '192.168.10.52', '192.168.10.200', '192.168.10.201',
+    '172.20.0.10', '172.20.0.11', '10.20.0.50', '10.20.0.51',
+];
+
+$pingDevices = [];
+for ($i = 0; $i < 20; $i++) {
+    $clientIdx = $i % count($clients);
+    $status = ($i % 7 === 0) ? 'offline' : (($i % 11 === 0) ? 'unknown' : 'online');
+    $rtt = ($status === 'online') ? random_int(1, 15) : null;
+
+    $pingDevices[] = [
+        'client_idx' => $clientIdx,
+        'name'       => $pingNames[$i],
+        'host'       => $pingHosts[$i],
+        'status'     => $status,
+        'rtt'        => $rtt,
+    ];
+}
 
 foreach ($pingDevices as $dev) {
     $id = uuid();
@@ -220,112 +282,50 @@ foreach ($pingDevices as $dev) {
         ':status_since'  => $dev['status'] === 'offline' ? randomPast(10, 120) : ($dev['status'] === 'unknown' ? null : randomPast(60, 5000)),
         ':last_checked'  => $dev['status'] === 'unknown' ? null : randomPast(0, 4),
     ]);
-
-    $rttStr = $dev['rtt'] !== null ? "{$dev['rtt']}ms" : 'N/A';
-    echo "  → {$dev['name']} ({$dev['host']}) [{$dev['status']}] RTT: {$rttStr}\n";
 }
 
 echo "✓ " . count($pingDevices) . " dispositivos ping criados\n";
 
-// ─── Criar Hosts Netwatch ──────────────────────────────────────────────────
+// ─── Criar Hosts Netwatch (54+ = dobro dos 27 originais) ───────────────────
 
 echo "Criando hosts netwatch...\n";
 
-// Mapear IDs: primeiros 8 são Mikrotik, restante são ping
 $mikrotikOnlyIds = array_slice($mikrotikIds, 0, count($mikrotikDevices));
 
-$netwatchHosts = [
-    // PoP Principal (index 2)
-    [
-        'mikrotik_idx' => 2, 'address' => '8.8.4.4',       'comment' => 'DNS Google Primário',    'status' => 'up',   'rtt' => 15,
-    ],
-    [
-        'mikrotik_idx' => 2, 'address' => '8.8.8.8',       'comment' => 'DNS Google Secundário',  'status' => 'up',   'rtt' => 14,
-    ],
-    [
-        'mikrotik_idx' => 2, 'address' => '1.1.1.1',       'comment' => 'Cloudflare DNS',         'status' => 'up',   'rtt' => 8,
-    ],
-    [
-        'mikrotik_idx' => 2, 'address' => '45.4.112.18',   'comment' => 'RB750Gr3 - Cliente XYZ', 'status' => 'up',   'rtt' => 3,
-    ],
-    [
-        'mikrotik_idx' => 2, 'address' => '189.55.12.34',  'comment' => 'hEX s - Filial Norte',   'status' => 'down', 'rtt' => null,
-    ],
-    [
-        'mikrotik_idx' => 2, 'address' => '200.147.35.1',  'comment' => 'Gateway Backbone',        'status' => 'up',   'rtt' => 22,
-    ],
-    [
-        'mikrotik_idx' => 2, 'address' => '10.0.0.1',      'comment' => 'Switch Core - TOR',      'status' => 'up',   'rtt' => 1,
-    ],
-    [
-        'mikrotik_idx' => 2, 'address' => '10.0.0.2',      'comment' => 'Switch Core - BOT',      'status' => 'up',   'rtt' => 1,
-    ],
-
-    // RB3011 Sede (index 0)
-    [
-        'mikrotik_idx' => 0, 'address' => '10.0.1.100',    'comment' => 'Camera Estacionamento',  'status' => 'up',   'rtt' => 2,
-    ],
-    [
-        'mikrotik_idx' => 0, 'address' => '10.0.1.101',    'comment' => 'Camera Entrada',         'status' => 'up',   'rtt' => 3,
-    ],
-    [
-        'mikrotik_idx' => 0, 'address' => '10.0.1.200',    'comment' => 'Servidor de Arquivos',   'status' => 'up',   'rtt' => 1,
-    ],
-    [
-        'mikrotik_idx' => 0, 'address' => '10.0.1.201',    'comment' => 'IPPD - Impressora',      'status' => 'down', 'rtt' => null,
-    ],
-
-    // RB4011 Escola (index 4)
-    [
-        'mikrotik_idx' => 4, 'address' => '172.16.0.10',   'comment' => 'PC - Sala Professores',  'status' => 'up',   'rtt' => 1,
-    ],
-    [
-        'mikrotik_idx' => 4, 'address' => '172.16.0.11',   'comment' => 'PC - Coordenação',       'status' => 'up',   'rtt' => 1,
-    ],
-    [
-        'mikrotik_idx' => 4, 'address' => '172.16.0.20',   'comment' => 'Notebook - Direção',     'status' => 'down', 'rtt' => null,
-    ],
-    [
-        'mikrotik_idx' => 4, 'address' => '172.16.0.50',   'comment' => 'NAS Backup',             'status' => 'up',   'rtt' => 2,
-    ],
-    [
-        'mikrotik_idx' => 4, 'address' => '172.16.0.100',  'comment' => 'AP - Salas Aulas',       'status' => 'up',   'rtt' => 1,
-    ],
-    [
-        'mikrotik_idx' => 4, 'address' => '172.16.0.101',  'comment' => 'AP - Pátio',             'status' => 'down', 'rtt' => null,
-    ],
-
-    // CCR1009 Hospital (index 5)
-    [
-        'mikrotik_idx' => 5, 'address' => '10.10.0.100',   'comment' => 'Prontuário Eletrônico',  'status' => 'up',   'rtt' => 1,
-    ],
-    [
-        'mikrotik_idx' => 5, 'address' => '10.10.0.101',   'comment' => 'Sistema PACS',           'status' => 'up',   'rtt' => 2,
-    ],
-    [
-        'mikrotik_idx' => 5, 'address' => '10.10.0.150',   'comment' => 'Equipamento Raio-X',     'status' => 'down', 'rtt' => null,
-    ],
-    [
-        'mikrotik_idx' => 5, 'address' => '10.10.0.200',   'comment' => 'Gateway Internet',       'status' => 'up',   'rtt' => 5,
-    ],
-    [
-        'mikrotik_idx' => 5, 'address' => '10.10.0.201',   'comment' => 'Impressora Recepção',    'status' => 'down', 'rtt' => null,
-    ],
-
-    // RB760iGS Condomínio (index 7)
-    [
-        'mikrotik_idx' => 7, 'address' => '192.168.10.50',  'comment' => 'Interfone Bloco A',     'status' => 'up',   'rtt' => 3,
-    ],
-    [
-        'mikrotik_idx' => 7, 'address' => '192.168.10.51',  'comment' => 'Interfone Bloco B',     'status' => 'up',   'rtt' => 4,
-    ],
-    [
-        'mikrotik_idx' => 7, 'address' => '192.168.10.52',  'comment' => 'Interfone Bloco C',     'status' => 'down', 'rtt' => null,
-    ],
-    [
-        'mikrotik_idx' => 7, 'address' => '192.168.10.200', 'comment' => 'Gerador de Energia',    'status' => 'up',   'rtt' => 1,
-    ],
+$netwatchHosts = [];
+$netwatchComments = [
+    'DNS Google Primário', 'DNS Google Secundário', 'Cloudflare DNS', 'Switch Core - TOR',
+    'Switch Core - BOT', 'Gateway Backbone', 'Servidor Web', 'Servidor SMTP',
+    'Switch Acces - Andar 1', 'Switch Acces - Andar 2', 'AP - Sala 101', 'AP - Sala 102',
+    'Camera - Entrada', 'Camera - Estacionamento', 'Camera - Fundos', 'Impressora - Térreo',
+    'Notebook - Direção', 'NAS Backup', 'Servidor Arquivos', 'IP Phone - Recepção',
+    'IP Phone - Financeiro', 'Telefonia - PBX', 'Gateway VPN', 'Firewall Edge',
+    'Servidor DNS Interno', 'Cache Proxy', 'Monitor - Rack 1', 'Monitor - Rack 2',
+    'UPS - Rack Principal', 'UPS - Rack Secundário', 'KVM - Rack 1', 'KVM - Rack 2',
+    'Switch Management', 'Router Backup', 'Antena - Telhado', 'Antena - Ponto Alto',
+    'Repetidor - Fundos', 'Repetidor - Ala Norte', 'Impressora 3D', 'Scanner Documentos',
+    'Interfone Principal', 'Portão Eletrônico', 'Câmera IR - Exterior', 'Alarme Central',
+    ' Sensor - Portaria', 'Sensor - Estacionamento', 'Sensores - Greens', 'Sensores - Sala Servidores',
+    'Iluminação LED', 'Ar Condicionado - Sala', 'Ar Condicionado - Rack', 'CFTV - Sala 2',
+    'CFTV - Corredor', 'GPS Rastreamento',
 ];
+
+for ($i = 0; $i < 54; $i++) {
+    $mikrotikIdx = $i % count($mikrotikDevices);
+    $baseSubnet = $hosts[$mikrotikIdx % count($hosts)];
+    $hostIp = $baseSubnet . '.' . (($i % 250) + 50);
+    $comment = $netwatchComments[$i % count($netwatchComments)];
+    $status = ($i % 6 === 0) ? 'down' : (($i % 13 === 0) ? 'unknown' : 'up');
+    $rtt = ($status === 'up') ? random_int(1, 25) : null;
+
+    $netwatchHosts[] = [
+        'mikrotik_idx' => $mikrotikIdx,
+        'address'      => $hostIp,
+        'comment'      => $comment,
+        'status'       => $status,
+        'rtt'          => $rtt,
+    ];
+}
 
 $netwatchIds = [];
 
@@ -358,9 +358,6 @@ foreach ($netwatchHosts as $host) {
         ':last_checked'  => randomPast(0, 3),
         ':rtt'           => $host['rtt'],
     ]);
-
-    $rttStr = $host['rtt'] !== null ? "{$host['rtt']}ms" : '—';
-    echo "  → {$host['comment']} ({$host['address']}) [{$host['status']}] RTT: {$rttStr}\n";
 }
 
 echo "✓ " . count($netwatchHosts) . " hosts netwatch criados\n";
@@ -376,16 +373,14 @@ foreach ($mikrotikDevices as $idx => $dev) {
 
     $mikrotikId = $mikrotikIds[$idx];
 
-    // Gerar 50 registros nos últimos 12 horas (um a cada ~15 min)
     for ($i = 50; $i >= 0; $i--) {
         $minutesAgo = $i * 15;
         $ts = date('Y-m-d H:i:s', time() - ($minutesAgo * 60));
 
-        // Simular variação realista
         $cpu = max(0, min(100, $dev['cpu'] + random_int(-5, 5)));
         $memFree = $dev['mem_free'] > 0 ? max(0, $dev['mem_free'] + random_int(-5242880, 5242880)) : null;
         $memTotal = $dev['mem_total'];
-        $temp = $dev['temp'] !== null ? round($dev['temp'] + random_int(-2, 2) + ($i > 40 ? 5 : 0), 1) : null;
+        $temp = $dev['temp'] !== null ? round($dev['temp'] + random_int(-2, 2), 1) : null;
         $volt = $dev['volt'] !== null ? round($dev['volt'] + (random_int(-10, 10) / 10), 1) : null;
         $uptime = random_int(800000, 1200000);
 
@@ -415,64 +410,47 @@ echo "Criando eventos de transição de status...\n";
 
 $eventCount = 0;
 
-// Evento: Filial Norte ficou offline há 2 horas
-$stmt = $db->prepare('
-    INSERT INTO mikrotik_events (mikrotik_id, status, started_at, ended_at, duration_seconds)
-    VALUES (:id, :status, :started, NULL, NULL)
-');
-$stmt->execute([
-    ':id'      => $mikrotikIds[4], // hEX s Filial Norte
-    ':status'  => 'offline',
-    ':started' => date('Y-m-d H:i:s', time() - 7200),
-]);
-$eventCount++;
+// 5 eventos de Mikrotik
+$eventData = [
+    [$mikrotikIds[4], 'offline', 7200, null, null],
+    [$mikrotikIds[5], 'offline', 3600, 2700, 900],
+    [$mikrotikIds[5], 'online',  2700, 1200, 1500],
+    [$mikrotikIds[9], 'offline', 1800, null, null],
+    [$mikrotikIds[12], 'offline', 600, 300, 300],
+];
 
-// Eventos: Hospital ficou offline por 15 min e voltou
 $stmt = $db->prepare('
     INSERT INTO mikrotik_events (mikrotik_id, status, started_at, ended_at, duration_seconds)
     VALUES (:id, :status, :started, :ended, :duration)
 ');
-$stmt->execute([
-    ':id'       => $mikrotikIds[5], // CCR1009 Hospital
-    ':status'   => 'offline',
-    ':started'  => date('Y-m-d H:i:s', time() - 3600),
-    ':ended'    => date('Y-m-d H:i:s', time() - 2700),
-    ':duration' => 900,
-]);
-$eventCount++;
 
-$stmt->execute([
-    ':id'       => $mikrotikIds[5],
-    ':status'   => 'online',
-    ':started'  => date('Y-m-d H:i:s', time() - 2700),
-    ':ended'    => date('Y-m-d H:i:s', time() - 1200),
-    ':duration' => 1500,
-]);
-$eventCount++;
+foreach ($eventData as [$mikrotikId, $status, $agoStarted, $agoEnded, $duration]) {
+    $started = date('Y-m-d H:i:s', time() - $agoStarted);
+    $ended = $agoEnded !== null ? date('Y-m-d H:i:s', time() - $agoEnded) : null;
+    $stmt->execute([':id' => $mikrotikId, ':status' => $status, ':started' => $started, ':ended' => $ended, ':duration' => $duration]);
+    $eventCount++;
+}
 
-// Eventos netwatch: Camera Entrada ficou down por 5 min
+// 5 eventos de netwatch
+$nwEventData = [
+    [$netwatchIds[12], 'down', 1800, 1500, 300],
+    [$netwatchIds[15], 'down', 1800, null, null],
+    [$netwatchIds[20], 'down', 900, 600, 300],
+    [$netwatchIds[30], 'down', 3600, 3000, 600],
+    [$netwatchIds[40], 'down', 600, null, null],
+];
+
 $stmt = $db->prepare('
     INSERT INTO netwatch_events (netwatch_host_id, status, started_at, ended_at, duration_seconds)
     VALUES (:id, :status, :started, :ended, :duration)
 ');
-$stmt->execute([
-    ':id'       => $netwatchIds[9], // Camera Entrada
-    ':status'   => 'down',
-    ':started'  => date('Y-m-d H:i:s', time() - 1800),
-    ':ended'    => date('Y-m-d H:i:s', time() - 1500),
-    ':duration' => 300,
-]);
-$eventCount++;
 
-// Evento netwatch: NAS Escola está down há 30 min (em aberto)
-$stmt->execute([
-    ':id'       => $netwatchIds[15], // NAS Backup
-    ':status'   => 'down',
-    ':started'  => date('Y-m-d H:i:s', time() - 1800),
-    ':ended'    => null,
-    ':duration' => null,
-]);
-$eventCount++;
+foreach ($nwEventData as [$hostId, $status, $agoStarted, $agoEnded, $duration]) {
+    $started = date('Y-m-d H:i:s', time() - $agoStarted);
+    $ended = $agoEnded !== null ? date('Y-m-d H:i:s', time() - $agoEnded) : null;
+    $stmt->execute([':id' => $hostId, ':status' => $status, ':started' => $started, ':ended' => $ended, ':duration' => $duration]);
+    $eventCount++;
+}
 
 echo "✓ {$eventCount} eventos criados\n";
 
@@ -483,18 +461,12 @@ echo "╔═══════════════════════�
 echo "║  Seed concluído com sucesso!                            ║\n";
 echo "╠══════════════════════════════════════════════════════════╣\n";
 echo "║                                                         ║\n";
+echo sprintf("║  %-20s %3d cliente(s)                              ║\n", "Clientes:", count($clients));
 echo sprintf("║  %-20s %3d equipamento(s) Mikrotik              ║\n", "Mikrotiks:", count($mikrotikDevices));
 echo sprintf("║  %-20s %3d dispositivo(s) Ping                  ║\n", "Ping:", count($pingDevices));
 echo sprintf("║  %-20s %3d host(s) Netwatch                     ║\n", "Hosts:", count($netwatchHosts));
 echo sprintf("║  %-20s %3d registro(s) de saúde                 ║\n", "Health Log:", $healthCount);
 echo sprintf("║  %-20s %3d evento(s) de transição               ║\n", "Eventos:", $eventCount);
-echo "║                                                         ║\n";
-echo "║  Dados dos equipamentos:                                ║\n";
-echo "║  • Mikrotiks com IP fake (10.x, 172.x, 45.x)           ║\n";
-echo "║  • Senhas fictícias (criptografadas no banco)           ║\n";
-echo "║  • Métricas com variação realista                       ║\n";
-echo "║  • Mixture de online/offline/unknown                    ║\n";
-echo "║  • Hosts netwatch com status variados                   ║\n";
 echo "║                                                         ║\n";
 echo "║  ⚠️  Para limpar: DELETE FROM clients CASCADE            ║\n";
 echo "╚══════════════════════════════════════════════════════════╝\n";

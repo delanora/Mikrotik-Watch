@@ -27,7 +27,17 @@ class ClientController
      */
     public function index(): void
     {
-        $stmt = $this->db->query("
+        $perPage = 10;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $offset = ($page - 1) * $perPage;
+
+        // Total de registros
+        $totalStmt = $this->db->query('SELECT COUNT(*) FROM clients');
+        $totalRows = (int) $totalStmt->fetchColumn();
+        $totalPages = max(1, (int) ceil($totalRows / $perPage));
+        $page = min($page, $totalPages);
+
+        $stmt = $this->db->prepare("
             SELECT
                 c.*,
                 COALESCE(m.mikrotik_count, 0) AS mikrotik_count,
@@ -45,7 +55,11 @@ class ClientController
                 GROUP BY client_id
             ) m ON m.client_id = c.id
             ORDER BY c.name ASC
+            LIMIT :limit OFFSET :offset
         ");
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
         $clients = $stmt->fetchAll();
 
         $pageTitle = 'Clientes';

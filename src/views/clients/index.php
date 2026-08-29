@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 /** @var array $clients */
+/** @var int $page */
+/** @var int $totalPages */
+/** @var int $totalRows */
 ?>
 
 <div class="page-header">
@@ -14,7 +17,7 @@ declare(strict_types=1);
     </a>
 </div>
 
-<?php if (empty($clients)): ?>
+<?php if (empty($clients) && $page === 1): ?>
     <div class="card">
         <div class="card-body text-center text-muted" style="padding: 60px 24px;">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 16px; display: block; opacity: 0.3;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -29,7 +32,7 @@ declare(strict_types=1);
             <h2>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                 Todos os Clientes
-                <span class="badge badge-secondary" style="margin-left: 4px;"><?= count($clients) ?></span>
+                <span class="badge badge-secondary" style="margin-left: 4px;"><?= $totalRows ?></span>
             </h2>
         </div>
         <div class="card-body" style="padding: 0;">
@@ -93,4 +96,51 @@ declare(strict_types=1);
             </table>
         </div>
     </div>
+
+    <?php if ($totalPages > 1): ?>
+    <div class="pagination">
+        <span class="pagination-info">Página <?= $page ?> de <?= $totalPages ?> (<?= $totalRows ?> registros)</span>
+
+        <a href="/clients?page=<?= max(1, $page - 1) ?>" class="pagination-btn" <?= $page <= 1 ? 'disabled' : '' ?>>
+            ‹ Anterior
+        </a>
+
+        <?php
+        // Lógica de páginas: mostrar até 5 páginas ao redor da atual
+        $startPage = max(1, $page - 2);
+        $endPage = min($totalPages, $page + 2);
+
+        // Ajustar para sempre mostrar 5 páginas se possível
+        if ($endPage - $startPage < 4) {
+            if ($startPage === 1) {
+                $endPage = min($totalPages, $startPage + 4);
+            } else {
+                $startPage = max(1, $endPage - 4);
+            }
+        }
+        ?>
+
+        <?php if ($startPage > 1): ?>
+            <a href="/clients?page=1" class="pagination-btn">1</a>
+            <?php if ($startPage > 2): ?>
+                <span class="pagination-ellipsis">…</span>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+            <a href="/clients?page=<?= $i ?>" class="pagination-btn <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+
+        <?php if ($endPage < $totalPages): ?>
+            <?php if ($endPage < $totalPages - 1): ?>
+                <span class="pagination-ellipsis">…</span>
+            <?php endif; ?>
+            <a href="/clients?page=<?= $totalPages ?>" class="pagination-btn"><?= $totalPages ?></a>
+        <?php endif; ?>
+
+        <a href="/clients?page=<?= min($totalPages, $page + 1) ?>" class="pagination-btn" <?= $page >= $totalPages ? 'disabled' : '' ?>>
+            Próxima ›
+        </a>
+    </div>
+    <?php endif; ?>
 <?php endif; ?>

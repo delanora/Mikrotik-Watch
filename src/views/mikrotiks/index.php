@@ -1,10 +1,13 @@
 <?php
 declare(strict_types=1);
 /**
- * @var array $mikrotiks     Lista de Mikrotiks (ordenada)
+ * @var array $mikrotiks     Lista de Mikrotiks (paginaada)
  * @var array $clients       Lista de clientes (para filtro)
  * @var array $summary       Resumo de contadores
  * @var string $filterClientId  Filtro selecionado
+ * @var int $page            Página atual
+ * @var int $totalPages      Total de páginas
+ * @var int $totalRows       Total de registros
  */
 
 function timeAgo(?string $datetime): string
@@ -73,6 +76,12 @@ function tempDisplay(?string $temp): string
         return '<span class="badge badge-warning">' . $display . '°C</span>';
     }
     return '<span>' . $display . '°C</span>';
+}
+
+// Parâmetros de paginação para URLs
+$baseParams = '';
+if ($filterClientId !== '') {
+    $baseParams = '&client_id=' . urlencode($filterClientId);
 }
 ?>
 
@@ -176,7 +185,7 @@ function tempDisplay(?string $temp): string
             <h2>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/></svg>
                 Equipamentos
-                <span class="badge badge-secondary" style="margin-left: 4px;"><?= count($mikrotiks) ?></span>
+                <span class="badge badge-secondary" style="margin-left: 4px;"><?= $totalRows ?></span>
             </h2>
         </div>
         <div class="card-body" style="padding: 0;">
@@ -280,4 +289,41 @@ function tempDisplay(?string $temp): string
             </table>
         </div>
     </div>
+
+    <?php if ($totalPages > 1): ?>
+    <div class="pagination">
+        <span class="pagination-info">Página <?= $page ?> de <?= $totalPages ?> (<?= $totalRows ?> registros)</span>
+
+        <a href="/mikrotiks?page=<?= max(1, $page - 1) . $baseParams ?>" class="pagination-btn" <?= $page <= 1 ? 'disabled' : '' ?>>
+            ‹ Anterior
+        </a>
+
+        <?php
+        $startPage = max(1, $page - 2);
+        $endPage = min($totalPages, $page + 2);
+        if ($endPage - $startPage < 4) {
+            if ($startPage === 1) { $endPage = min($totalPages, $startPage + 4); }
+            else { $startPage = max(1, $endPage - 4); }
+        }
+        ?>
+
+        <?php if ($startPage > 1): ?>
+            <a href="/mikrotiks?page=1<?= $baseParams ?>" class="pagination-btn">1</a>
+            <?php if ($startPage > 2): ?><span class="pagination-ellipsis">…</span><?php endif; ?>
+        <?php endif; ?>
+
+        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+            <a href="/mikrotiks?page=<?= $i . $baseParams ?>" class="pagination-btn <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+
+        <?php if ($endPage < $totalPages): ?>
+            <?php if ($endPage < $totalPages - 1): ?><span class="pagination-ellipsis">…</span><?php endif; ?>
+            <a href="/mikrotiks?page=<?= $totalPages . $baseParams ?>" class="pagination-btn"><?= $totalPages ?></a>
+        <?php endif; ?>
+
+        <a href="/mikrotiks?page=<?= min($totalPages, $page + 1) . $baseParams ?>" class="pagination-btn" <?= $page >= $totalPages ? 'disabled' : '' ?>>
+            Próxima ›
+        </a>
+    </div>
+    <?php endif; ?>
 <?php endif; ?>

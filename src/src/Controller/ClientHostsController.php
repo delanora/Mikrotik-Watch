@@ -47,11 +47,29 @@ class ClientHostsController
         $stmt->execute([':client_id' => $clientId]);
         $mikrotiks = $stmt->fetchAll();
 
+        // Paginação
+        $perPage = 10;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+
         // Buscar todos os hosts dos Mikrotiks deste cliente
         $hosts = [];
+        $totalRows = 0;
+        $totalPages = 1;
+
         if (!empty($mikrotiks)) {
             $mikrotikIds = array_column($mikrotiks, 'id');
             $placeholders = implode(',', array_fill(0, count($mikrotikIds), '?'));
+
+            // Total de registros
+            $countStmt = $db->prepare("SELECT COUNT(*) FROM netwatch_hosts nh WHERE nh.mikrotik_id IN ({$placeholders}) AND nh.active = true");
+            foreach ($mikrotikIds as $i => $id) {
+                $countStmt->bindValue($i + 1, $id, \PDO::PARAM_STR);
+            }
+            $countStmt->execute();
+            $totalRows = (int) $countStmt->fetchColumn();
+            $totalPages = max(1, (int) ceil($totalRows / $perPage));
+            $page = min($page, $totalPages);
+            $offset = ($page - 1) * $perPage;
 
             $stmt = $db->prepare("
                 SELECT
@@ -72,11 +90,15 @@ class ClientHostsController
                     nh.status_since ASC NULLS LAST,
                     m.name ASC,
                     nh.host_address ASC
+                LIMIT ? OFFSET ?
             ");
 
-            foreach ($mikrotikIds as $i => $id) {
-                $stmt->bindValue($i + 1, $id, \PDO::PARAM_STR);
+            $i = 1;
+            foreach ($mikrotikIds as $id) {
+                $stmt->bindValue($i++, $id, \PDO::PARAM_STR);
             }
+            $stmt->bindValue($i++, $perPage, \PDO::PARAM_INT);
+            $stmt->bindValue($i, $offset, \PDO::PARAM_INT);
             $stmt->execute();
             $hosts = $stmt->fetchAll();
         }

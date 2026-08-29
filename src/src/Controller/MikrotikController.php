@@ -34,6 +34,8 @@ class MikrotikController
     {
         $db = $this->getDb();
         $filterClientId = $_GET['client_id'] ?? '';
+        $perPage = 10;
+        $page = max(1, (int) ($_GET['page'] ?? 1));
 
         // Filtro por cliente
         $whereClause = 'WHERE m.active = true';
@@ -43,6 +45,15 @@ class MikrotikController
             $params[':client_id'] = $filterClientId;
         }
 
+        // Total de registros (com filtro)
+        $countSql = "SELECT COUNT(*) FROM mikrotiks m {$whereClause}";
+        $countStmt = $db->prepare($countSql);
+        $countStmt->execute($params);
+        $totalRows = (int) $countStmt->fetchColumn();
+        $totalPages = max(1, (int) ceil($totalRows / $perPage));
+        $page = min($page, $totalPages);
+        $offset = ($page - 1) * $perPage;
+
         // Ordenação: offline primeiro, depois unknown, depois online
         $sql = "
             SELECT
@@ -51,7 +62,7 @@ class MikrotikController
                 m.last_cpu_load, m.last_memory_free, m.last_memory_total,
                 m.last_temperature, m.last_voltage,
                 m.board_name, m.routeros_version,
-                m.active, m.created_at,
+                m.active, m.created_at, m.device_type,
                 c.name AS client_name, c.id AS client_id
             FROM mikrotiks m
             LEFT JOIN clients c ON c.id = m.client_id
@@ -66,10 +77,16 @@ class MikrotikController
                 m.status_since ASC NULLS LAST,
                 c.name ASC,
                 m.name ASC
+            LIMIT :limit OFFSET :offset
         ";
 
         $stmt = $db->prepare($sql);
-        $stmt->execute($params);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
+        $stmt->bindValue(':limit', $perPage, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
         $mikrotiks = $stmt->fetchAll();
 
         // Clientes para o filtro

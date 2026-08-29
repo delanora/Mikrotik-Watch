@@ -4,7 +4,10 @@ declare(strict_types=1);
  * @var array $client        Cliente selecionado
  * @var array $clients       Todos os clientes (para seletor)
  * @var array $mikrotiks     Mikrotiks do cliente
- * @var array $hosts         Hosts Netwatch do cliente
+ * @var array $hosts         Hosts Netwatch do cliente (paginaada)
+ * @var int $page            Página atual
+ * @var int $totalPages      Total de páginas
+ * @var int $totalRows       Total de registros
  */
 
 function timeAgo(?string $datetime): string
@@ -75,7 +78,7 @@ function timeAgo(?string $datetime): string
             </div>
         </div>
     </div>
-<?php elseif (empty($hosts)): ?>
+<?php elseif (empty($hosts) && $page === 1): ?>
     <div class="card">
         <div class="card-body">
             <div class="alert alert-warning">
@@ -90,7 +93,7 @@ function timeAgo(?string $datetime): string
             <h2>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
                 Hosts de <?= htmlspecialchars($client['name']) ?>
-                <span class="badge badge-secondary" style="margin-left: 4px;"><?= count($hosts) ?></span>
+                <span class="badge badge-secondary" style="margin-left: 4px;"><?= $totalRows ?></span>
             </h2>
         </div>
         <div class="card-body" style="padding: 0;">
@@ -156,4 +159,41 @@ function timeAgo(?string $datetime): string
             </table>
         </div>
     </div>
+
+    <?php if ($totalPages > 1): ?>
+    <div class="pagination">
+        <span class="pagination-info">Página <?= $page ?> de <?= $totalPages ?> (<?= $totalRows ?> registros)</span>
+
+        <a href="/clients/<?= htmlspecialchars($client['id']) ?>/hosts?page=<?= max(1, $page - 1) ?>" class="pagination-btn" <?= $page <= 1 ? 'disabled' : '' ?>>
+            ‹ Anterior
+        </a>
+
+        <?php
+        $startPage = max(1, $page - 2);
+        $endPage = min($totalPages, $page + 2);
+        if ($endPage - $startPage < 4) {
+            if ($startPage === 1) { $endPage = min($totalPages, $startPage + 4); }
+            else { $startPage = max(1, $endPage - 4); }
+        }
+        ?>
+
+        <?php if ($startPage > 1): ?>
+            <a href="/clients/<?= htmlspecialchars($client['id']) ?>/hosts?page=1" class="pagination-btn">1</a>
+            <?php if ($startPage > 2): ?><span class="pagination-ellipsis">…</span><?php endif; ?>
+        <?php endif; ?>
+
+        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+            <a href="/clients/<?= htmlspecialchars($client['id']) ?>/hosts?page=<?= $i ?>" class="pagination-btn <?= $i === $page ? 'active' : '' ?>"><?= $i ?></a>
+        <?php endfor; ?>
+
+        <?php if ($endPage < $totalPages): ?>
+            <?php if ($endPage < $totalPages - 1): ?><span class="pagination-ellipsis">…</span><?php endif; ?>
+            <a href="/clients/<?= htmlspecialchars($client['id']) ?>/hosts?page=<?= $totalPages ?>" class="pagination-btn"><?= $totalPages ?></a>
+        <?php endif; ?>
+
+        <a href="/clients/<?= htmlspecialchars($client['id']) ?>/hosts?page=<?= min($totalPages, $page + 1) ?>" class="pagination-btn" <?= $page >= $totalPages ? 'disabled' : '' ?>>
+            Próxima ›
+        </a>
+    </div>
+    <?php endif; ?>
 <?php endif; ?>

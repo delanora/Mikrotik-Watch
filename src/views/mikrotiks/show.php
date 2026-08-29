@@ -284,8 +284,8 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     }
 
     function loadData() {
-        var start = document.getElementById('chart-start').value;
-        var end = document.getElementById('chart-end').value;
+        var start = encodeURIComponent(document.getElementById('chart-start').value);
+        var end = encodeURIComponent(document.getElementById('chart-end').value);
 
         if (!isPing) {
             ['cpu', 'mem', 'temp', 'volt'].forEach(function(k) {
@@ -353,13 +353,21 @@ $deviceId = htmlspecialchars($mikrotik['id']);
             document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
             btn.classList.add('active');
             var end = new Date(); var start = new Date();
-            if (btn.dataset.hours) {
+            var isShort = !!btn.dataset.hours;
+            if (isShort) {
                 start.setHours(start.getHours() - parseInt(btn.dataset.hours));
             } else {
                 start.setDate(start.getDate() - parseInt(btn.dataset.days));
             }
-            document.getElementById('chart-start').value = start.toISOString().split('T')[0];
-            document.getElementById('chart-end').value = end.toISOString().split('T')[0];
+            // Para períodos curtos, enviar datetime completo
+            var fmt = function(d) {
+                return d.getFullYear() + '-' +
+                    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(d.getDate()).padStart(2, '0') +
+                    (isShort ? ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : '');
+            };
+            document.getElementById('chart-start').value = fmt(start);
+            document.getElementById('chart-end').value = fmt(end);
             loadData();
         });
     });

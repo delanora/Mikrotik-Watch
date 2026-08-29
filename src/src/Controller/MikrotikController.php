@@ -454,8 +454,8 @@ class MikrotikController
         $start = $_GET['start'] ?? $defaultStart;
         $end = $_GET['end'] ?? $defaultEnd;
 
-        // Validar formato de data
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}(?: \d{2}:\d{2})?$/', $end)) {
+        // Validar formato de data (aceita espaço ou T como separador)
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2})?$/', $start) || !preg_match('/^\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2})?$/', $end)) {
             $start = $defaultStart;
             $end = $defaultEnd;
         }

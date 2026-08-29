@@ -314,11 +314,22 @@ $deviceId = htmlspecialchars($mikrotik['id']);
             });
     }
 
+    // Normaliza string de data para formato ISO-compatível (T em vez de espaço)
+    // Para date-only (YYYY-MM-DD), adiciona meia-noite local para evitar
+    // interpretação como UTC que causaria offset de fuso horário.
+    function parseDate(s) {
+        var iso = s.replace(' ', 'T');
+        if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+            iso += 'T00:00:00';
+        }
+        return new Date(iso).getTime();
+    }
+
     function renderUptime(segments, startStr, endStr) {
         var bar = document.getElementById('uptime-bar');
         var stats = document.getElementById('uptime-stats');
-        var rangeStart = new Date(startStr).getTime();
-        var rangeEnd = new Date(endStr).getTime();
+        var rangeStart = parseDate(startStr);
+        var rangeEnd = parseDate(endStr);
         var totalMs = rangeEnd - rangeStart;
 
         if (totalMs <= 0 || segments.length === 0) {
@@ -359,12 +370,12 @@ $deviceId = htmlspecialchars($mikrotik['id']);
             } else {
                 start.setDate(start.getDate() - parseInt(btn.dataset.days));
             }
-            // Para períodos curtos, enviar datetime completo
+            // Para períodos curtos, enviar datetime completo com T (ISO)
             var fmt = function(d) {
                 return d.getFullYear() + '-' +
                     String(d.getMonth() + 1).padStart(2, '0') + '-' +
                     String(d.getDate()).padStart(2, '0') +
-                    (isShort ? ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : '');
+                    (isShort ? 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') : '');
             };
             document.getElementById('chart-start').value = fmt(start);
             document.getElementById('chart-end').value = fmt(end);

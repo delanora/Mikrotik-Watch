@@ -24,7 +24,6 @@ function logMessage(string $message): void
 {
     $timestamp = date('Y-m-d H:i:s');
     $line = "[{$timestamp}] {$message}" . PHP_EOL;
-    echo $line;
     @file_put_contents($GLOBALS['logFile'], $line, FILE_APPEND);
 }
 

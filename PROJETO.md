@@ -172,8 +172,7 @@ WHERE job_name = 'netwatch_sync'
 
 | Rota | Descrição |
 |------|-----------|
-| `GET /api/stats` | Estatísticas gerais |
-| `GET /api/mikrotiks` | Lista de equipamentos |
+
 
 ## Segurança
 
@@ -295,7 +294,10 @@ composer test:coverage     # Com cobertura
 | PingDeviceTest | 5 | Integração |
 | AdminViewerTest | 9 | Integração |
 | HealthAggregationTest | 6 | Integração |
-| **Total** | **137** | |
+| PaginationTest | 5 | Integração |
+| HealthDataTest | 5 | Integração |
+| TvDashboardTest | 9 | Integração |
+| **Total** | **156** | |
 
 ## Dependências PHP
 

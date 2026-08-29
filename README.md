@@ -182,7 +182,7 @@ Mikrotik Watch/
 │   │   └── routes.php      # Definição de rotas
 │   ├── src/
 │   │   ├── Router.php      # Router simples
-│   │   ├── Service/        # Serviços (MikrotikClient, Crypto)
+│   │   ├── Service/        # Serviços (MikrotikClient, CredentialCrypto, Crypto)
 │   │   ├── Exception/      # Exceções customizadas
 │   │   ├── Middleware/      # Middlewares
 │   │   └── Controller/     # Controllers por domínio
@@ -271,9 +271,18 @@ composer test:coverage
 | `Unit/MikrotikClientTest` | Cliente API REST | Não |
 | `Unit/AuthMiddlewareTest` | Middleware de autenticação | Não |
 | `Unit/MikrotikCrudTest` | Validação e criptografia Mikrotik | Não |
+| `Unit/BatchRequestTest` | Requisições em paralelo (curl_multi) | Não |
 | `Integration/ClientCrudTest` | CRUD de clientes | Sim |
 | `Integration/MikrotikCrudIntegrationTest` | CRUD de Mikrotiks + criptografia | Sim |
 | `Integration/NetwatchSyncTest` | Sincronização Netwatch | Sim |
+| `Integration/AdminViewerTest` | Restrição de roles admin/viewer | Sim |
+| `Integration/PingDeviceTest` | Dispositivos ping (ICMP) | Sim |
+| `Integration/HealthAggregationTest` | Agregação e retenção de health_log | Sim |
+| `Integration/PaginationTest` | Paginação de clientes, equipamentos, hosts | Sim |
+| `Integration/HealthDataTest` | Dados de saúde e gráficos (health-data) | Sim |
+| `Integration/TvDashboardTest` | Dashboard TV (acesso público, dados agregados) | Sim |
+
+**Total: 156 testes** (65 unitários + 91 integração)
 
 ## Configuração de Cron
 

@@ -5,38 +5,13 @@ declare(strict_types=1);
 namespace App\Service;
 
 /**
- * Mikrotik Watch - Crypto Service
+ * Mikrotik Watch - Password Hashing Service
  *
- * Serviço de criptografia para dados sensíveis (senhas de API Mikrotik).
+ * Serviço de hashing de senhas de usuário via bcrypt.
+ * Para criptografia reversível de senhas Mikrotik, usar CredentialCrypto.
  */
 class Crypto
 {
-    /**
-     * Criptografa um valor usando a chave secreta da aplicação.
-     *
-     * @param string $value
-     * @param string $secret
-     * @return string
-     */
-    public static function encrypt(string $value, string $secret): string
-    {
-        // TODO: Implementar criptografia com openssl
-        return $value;
-    }
-
-    /**
-     * Descriptografa um valor criptografado.
-     *
-     * @param string $encrypted
-     * @param string $secret
-     * @return string
-     */
-    public static function decrypt(string $encrypted, string $secret): string
-    {
-        // TODO: Implementar descriptografia com openssl
-        return $encrypted;
-    }
-
     /**
      * Gera um hash bcrypt para senhas de usuário.
      *

@@ -56,8 +56,6 @@ return [
     ['POST', '/users/{id}/delete',         'UserController@delete'],
 
     // ─── API (para AJAX/JavaScript) ───────────────────────────────────────────
-    ['GET',  '/api/stats',                 'ApiController@stats'],
-    ['GET',  '/api/mikrotiks',             'ApiController@mikrotiks'],
     ['POST', '/api/collect',               'CollectController@trigger'],
 
     // ─── TV Dashboard (sem auth) ─────────────────────────────────────────────

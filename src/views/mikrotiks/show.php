@@ -8,7 +8,7 @@ $deviceId = htmlspecialchars($mikrotik['id']);
 ?>
 
 <style>
-    .charts-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .charts-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; width: 100%; }
     .charts-controls label { font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
     .charts-controls input[type="date"] { padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13px; background: var(--bg-secondary); color: var(--text-primary); font-family: var(--font-mono); }
     .charts-controls input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.6); }

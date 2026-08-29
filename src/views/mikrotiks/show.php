@@ -363,6 +363,11 @@ $deviceId = htmlspecialchars($mikrotik['id']);
         loadData();
     });
 
-    loadData();
+    // Aguardar Chart.js do CDN estar pronto
+    if (typeof Chart !== 'undefined') {
+        loadData();
+    } else {
+        window.addEventListener('load', loadData);
+    }
 })();
 </script>

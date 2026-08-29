@@ -24,10 +24,10 @@ $deviceId = htmlspecialchars($mikrotik['id']);
     .uptime-segment.online { background: var(--success); }
     .uptime-segment.offline { background: var(--danger); }
     .uptime-segment.unknown { background: var(--text-muted); opacity: 0.4; }
-    .uptime-legend { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--text-muted); }
+    .uptime-legend { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--text-muted); }
     .uptime-legend-item { display: flex; align-items: center; gap: 6px; }
     .uptime-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
-    .uptime-stats { display: flex; justify-content: flex-end; gap: 20px; margin-top: 12px; font-size: 13px; }
+    .uptime-stats { display: flex; gap: 20px; font-size: 13px; }
     .uptime-stats span { color: var(--text-secondary); }
     .uptime-stats strong { color: var(--text-primary); }
     .chart-loading { display: flex; align-items: center; justify-content: center; height: 220px; color: var(--text-muted); font-size: 14px; }
@@ -149,11 +149,13 @@ $deviceId = htmlspecialchars($mikrotik['id']);
             <div class="uptime-segment unknown" style="width: 100%;" title="Carregando…"></div>
         </div>
         <div class="uptime-legend">
-            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--success);"></div> Online</div>
-            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--danger);"></div> Offline</div>
-            <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--text-muted); opacity: 0.4;"></div> Desconhecido</div>
+            <div style="display: flex; gap: 16px; align-items: center;">
+                <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--success);"></div> Online</div>
+                <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--danger);"></div> Offline</div>
+                <div class="uptime-legend-item"><div class="uptime-legend-dot" style="background: var(--text-muted); opacity: 0.4;"></div> Desconhecido</div>
+            </div>
+            <div id="uptime-stats" class="uptime-stats"></div>
         </div>
-        <div id="uptime-stats" class="uptime-stats"></div>
     </div>
 </div>
 

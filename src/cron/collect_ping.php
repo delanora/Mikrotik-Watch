@@ -108,7 +108,6 @@ try {
 
         foreach ($devices as $device) {
             $host = $device['host'];
-            $oldStatus = $device['current_status'];
 
             // Executar ping e capturar saída diretamente
             $output = '';
@@ -145,40 +144,31 @@ try {
                 $pingOk = true;
             }
 
-            $newStatus = $pingOk ? 'online' : 'offline';
-
-            // Atualizar mikrotiks
-            $statusChanged = ($newStatus !== $oldStatus);
-
+            // Atualizar last_rtt_ms
             $stmt = $db->prepare('
                 UPDATE mikrotiks
-                SET current_status = :status,
-                    last_checked_at = now(),
-                    last_rtt_ms = :rtt
+                SET last_rtt_ms = :rtt
                 WHERE id = :id
             ');
             $stmt->execute([
-                ':status' => $newStatus,
-                ':rtt'    => $rtt,
-                ':id'     => $device['id'],
+                ':rtt' => $rtt,
+                ':id'  => $device['id'],
             ]);
 
-            // Atualizar status_since se mudou
-            if ($statusChanged) {
-                $stmt = $db->prepare('UPDATE mikrotiks SET status_since = now() WHERE id = :id');
-                $stmt->execute([':id' => $device['id']]);
+            // Avaliar transição de status via StatusTransition (debounce)
+            \App\Service\StatusTransition::evaluate(
+                db: $db,
+                table: 'mikrotiks',
+                eventsTable: 'mikrotik_events',
+                entityId: (int) $device['id'],
+                checkSucceeded: $pingOk,
+                onlineValue: 'online',
+                offlineValue: 'offline',
+                failureThreshold: $config['failure']['threshold'],
+            );
 
-                // Registrar evento em mikrotik_events
-                $stmt = $db->prepare('
-                    INSERT INTO mikrotik_events (mikrotik_id, status, started_at)
-                    VALUES (:mikrotik_id, :status, now())
-                ');
-                $stmt->execute([':mikrotik_id' => $device['id'], ':status' => $newStatus]);
-
-                logMessage("[{$device['name']}] {$oldStatus} → {$newStatus}" . ($rtt !== null ? " (RTT: {$rtt}ms)" : ''));
-            } else {
-                logMessage("[{$device['name']}] {$newStatus}" . ($rtt !== null ? " (RTT: {$rtt}ms)" : ''));
-            }
+            $newStatus = $pingOk ? 'online' : 'offline';
+            logMessage("[{$device['name']}] {$newStatus}" . ($rtt !== null ? " (RTT: {$rtt}ms)" : ''));
 
             $success++;
         }

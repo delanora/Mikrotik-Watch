@@ -297,6 +297,7 @@ function tvMemPct($free, $total): ?float
         .tv-device:hover { border-color: var(--border); }
 
         .tv-device.status-offline { border-left: 3px solid var(--danger); }
+        .tv-device.status-warning { border-left: 3px solid var(--warning); }
         .tv-device.status-unknown { border-left: 3px solid var(--text-muted); }
         .tv-device.status-online { border-left: 3px solid var(--success); }
 
@@ -391,6 +392,12 @@ function tvMemPct($free, $total): ?float
             background: var(--danger-bg);
             color: #f87171;
             border: 1px solid var(--danger-border);
+        }
+
+        .badge-warning {
+            background: var(--warning-bg);
+            color: var(--warning);
+            border: 1px solid var(--warning-border);
         }
 
         .badge-ping {
@@ -547,6 +554,15 @@ function tvMemPct($free, $total): ?float
         <div class="stat-info">
             <h3 style="color: #f87171;"><?= (int) $deviceSummary['offline'] ?></h3>
             <p>Offline</p>
+        </div>
+    </div>
+    <div class="tv-stat">
+        <div class="stat-icon" style="background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3 style="color: var(--warning);"><?= (int) $deviceSummary['warning'] ?></h3>
+            <p>Em Atenção</p>
         </div>
     </div>
     <div class="tv-stat">
@@ -733,13 +749,15 @@ function tvMemPct($free, $total): ?float
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var stats = document.querySelectorAll('.tv-stat .stat-info h3');
-                if (stats.length >= 6) {
+                if (stats.length >= 8) {
                     stats[0].textContent = data.devices.total;
                     stats[1].textContent = data.devices.online;
                     stats[2].textContent = data.devices.offline;
-                    stats[3].textContent = data.hosts.total;
-                    stats[4].textContent = data.hosts.up;
-                    stats[5].textContent = data.hosts.down;
+                    stats[3].textContent = data.devices.warning || 0;
+                    stats[4].textContent = data.hosts.total;
+                    stats[5].textContent = data.hosts.up;
+                    stats[6].textContent = data.hosts.down;
+                    stats[7].textContent = data.hosts.warning || 0;
                 }
 
                 if (data.lastCheck) {

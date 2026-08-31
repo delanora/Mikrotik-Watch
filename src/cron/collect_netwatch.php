@@ -145,56 +145,34 @@ function syncNetwatchHosts(
         }
     }
 
-    // 2. Hosts que existem em ambos → atualizar status
+    // 2. Hosts que existem em ambos → atualizar status via StatusTransition (debounce)
     foreach ($apiByRef as $refId => $apiHost) {
         if (isset($existingByRef[$refId])) {
             $existing = $existingByRef[$refId];
             $apiStatus = $apiHost['status'] ?? 'unknown';
-            $newStatus = ($apiStatus === 'up') ? 'up' : (($apiStatus === 'down') ? 'down' : 'unknown');
-            $oldStatus = $existing['current_status'];
-            $statusChanged = ($newStatus !== $oldStatus);
+            $newApiStatus = ($apiStatus === 'up') ? 'up' : (($apiStatus === 'down') ? 'down' : 'unknown');
 
-            $stmt = $db->prepare('
-                UPDATE netwatch_hosts
-                SET current_status = :status,
-                    last_checked_at = now(),
-                    active = true
-                WHERE id = :id
-            ');
-            $stmt->execute([
-                ':status' => $newStatus,
-                ':id'     => $existing['id'],
-            ]);
+            // Marcar ativo
+            $stmt = $db->prepare('UPDATE netwatch_hosts SET active = true WHERE id = :id');
+            $stmt->execute([':id' => $existing['id']]);
 
-            if ($statusChanged) {
-                $stmt = $db->prepare('UPDATE netwatch_hosts SET status_since = now() WHERE id = :id');
-                $stmt->execute([':id' => $existing['id']]);
-            }
+            // Avaliar transição via StatusTransition (debounce)
+            $checkSucceeded = ($newApiStatus === 'up');
+            \App\Service\StatusTransition::evaluate(
+                db: $db,
+                table: 'netwatch_hosts',
+                eventsTable: 'netwatch_events',
+                entityId: (int) $existing['id'],
+                checkSucceeded: $checkSucceeded,
+                onlineValue: 'up',
+                offlineValue: 'down',
+                failureThreshold: $config['failure']['threshold'],
+            );
 
             $stats['synced']++;
 
-            if ($newStatus !== $oldStatus && $newStatus !== 'unknown') {
-                // Fechar evento aberto anterior
-                $stmt = $db->prepare('
-                    UPDATE netwatch_events
-                    SET ended_at = now(),
-                        duration_seconds = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER
-                    WHERE netwatch_host_id = :host_id
-                      AND ended_at IS NULL
-                ');
-                $stmt->execute([':host_id' => $existing['id']]);
-
-                // Iniciar novo evento
-                $stmt = $db->prepare('
-                    INSERT INTO netwatch_events (netwatch_host_id, status, started_at)
-                    VALUES (:host_id, :status, now())
-                ');
-                $stmt->execute([
-                    ':host_id' => $existing['id'],
-                    ':status'  => $newStatus,
-                ]);
-
-                logMessage("[{$mikrotikName}] Host {$existing['host_address']}: {$oldStatus} → {$newStatus}");
+            if ($newApiStatus !== $existing['current_status'] && $newApiStatus !== 'unknown') {
+                logMessage("[{$mikrotikName}] Host {$existing['host_address']}: {$existing['current_status']} → {$newApiStatus}");
             }
         }
     }

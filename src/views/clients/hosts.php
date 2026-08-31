@@ -133,6 +133,7 @@ function timeAgo(?string $datetime): string
                                 $statusClass = match ($status) {
                                     'up'      => 'badge-success',
                                     'down'    => 'badge-danger',
+                                    'warning' => 'badge-warning',
                                     default   => 'badge-secondary',
                                 };
                                 ?>

@@ -77,6 +77,9 @@ return [
         'allow_self_signed' => filter_var(env('MIKROTIK_ALLOW_SELF_SIGNED', 'false'), FILTER_VALIDATE_BOOLEAN),
         'credential_key'   => env('CREDENTIAL_ENCRYPTION_KEY', ''),
     ],
+    'failure' => [
+        'threshold' => (int) env('FAILURE_THRESHOLD', '3'),
+    ],
     'auth' => [
         'session_timeout' => (int) env('SESSION_TIMEOUT', '3600'),
     ],

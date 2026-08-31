@@ -32,6 +32,7 @@ class DashboardController
                 COUNT(*) FILTER (WHERE active = true) AS total_mikrotiks,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'online\') AS online_mikrotiks,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'offline\') AS offline_mikrotiks,
+                COUNT(*) FILTER (WHERE active = true AND current_status = \'warning\') AS warning_mikrotiks,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'unknown\') AS unknown_mikrotiks
             FROM mikrotiks
         ');
@@ -42,6 +43,7 @@ class DashboardController
                 COUNT(*) FILTER (WHERE active = true) AS total_hosts,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'up\') AS up_hosts,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'down\') AS down_hosts,
+                COUNT(*) FILTER (WHERE active = true AND current_status = \'warning\') AS warning_hosts,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'unknown\') AS unknown_hosts
             FROM netwatch_hosts
         ');
@@ -75,6 +77,35 @@ class DashboardController
             ORDER BY nh.status_since ASC NULLS LAST
         ');
         $downHosts = $stmt->fetchAll();
+
+        // ─── Mikrotiks em warning ────────────────────────────────────────────
+
+        $stmt = $db->query('
+            SELECT
+                m.id, m.name, m.host, m.current_status, m.status_since, m.last_checked_at,
+                c.name AS client_name, c.id AS client_id
+            FROM mikrotiks m
+            LEFT JOIN clients c ON c.id = m.client_id
+            WHERE m.active = true AND m.current_status = \'warning\'
+            ORDER BY m.status_since ASC NULLS LAST
+        ');
+        $warningMikrotiks = $stmt->fetchAll();
+
+        // ─── Hosts em warning (Netwatch) ─────────────────────────────────────
+
+        $stmt = $db->query('
+            SELECT
+                nh.id, nh.host_address, nh.comment, nh.current_status,
+                nh.status_since, nh.last_checked_at,
+                m.name AS mikrotik_name, m.id AS mikrotik_id,
+                c.name AS client_name, c.id AS client_id
+            FROM netwatch_hosts nh
+            LEFT JOIN mikrotiks m ON m.id = nh.mikrotik_id
+            LEFT JOIN clients c ON c.id = m.client_id
+            WHERE nh.active = true AND nh.current_status = \'warning\'
+            ORDER BY nh.status_since ASC NULLS LAST
+        ');
+        $warningHosts = $stmt->fetchAll();
 
         $pageTitle = 'Dashboard';
         require __DIR__ . '/../../views/layouts/sidebar.php';

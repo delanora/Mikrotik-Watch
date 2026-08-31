@@ -60,6 +60,8 @@ declare(strict_types=1);
                                     <span class="badge badge-secondary">Sem equipamentos</span>
                                 <?php elseif ((int) $client['offline_count'] > 0): ?>
                                     <span class="badge badge-danger"><?= (int) $client['online_count'] ?> online / <?= (int) $client['offline_count'] ?> offline</span>
+                                <?php elseif ((int) ($client['warning_count'] ?? 0) > 0): ?>
+                                    <span class="badge badge-warning"><?= (int) $client['online_count'] ?> online / <?= (int) $client['warning_count'] ?> atenção</span>
                                 <?php else: ?>
                                     <span class="badge badge-success"><?= (int) $client['online_count'] ?> online</span>
                                 <?php endif; ?>

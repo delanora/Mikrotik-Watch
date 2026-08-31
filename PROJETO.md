@@ -297,7 +297,63 @@ composer test:coverage     # Com cobertura
 | PaginationTest | 5 | Integração |
 | HealthDataTest | 5 | Integração |
 | TvDashboardTest | 9 | Integração |
-| **Total** | **156** | |
+| StatusTransitionTest | 14 | Integração |
+| **Total** | **170** | |
+
+## Debounce de Status
+
+### Motivo
+
+Em redes reais, uma falha isolada de ping ou timeout de API não significa que o equipamento está offline. Interrupções momentâneas de rede, congestionamento, ou sobrecarga da API REST do Mikrotik podem causar falsos positivos de status offline. O mecanismo de debounce (confirmação por falhas consecutivas) evita que o sistema marque um equipamento como offline por uma falha transitória.
+
+### Máquina de Estados
+
+```
+online/up → (1 falha) → online/up      [nenhum evento, sem mudança de status]
+online/up → (2 falhas) → warning        [soft state, reflete nas listagens]
+online/up → (3+ falhas) → offline/down  [evento criado com started_at = 1ª falha]
+
+warning → (1 falha a mais) → offline/down [se >= threshold]
+
+offline/down → (sucesso) → online/up [IMEDIATO, fecha evento, sem debounce de recuperação]
+```
+
+### Transições
+
+| De | Para | Condição | Evento criado |
+|----|------|----------|---------------|
+| online | online | sucesso ou 1ª falha | Não |
+| online | warning | 2 falhas consecutivas | Não (estado soft) |
+| online | offline | 3+ falhas consecutivas | Sim (started_at = 1ª falha) |
+| warning | offline | 3+ falhas consecutivas | Sim (started_at = 1ª falha) |
+| warning | online | 1 sucesso | Fecha evento offline (se houver) |
+| offline | online | 1 sucesso | Fecha evento offline |
+
+**Recuperação imediata**: A transição de volta para online/up é confirmada com 1 único sucesso, sem debounce. Isso segue o padrão comum de monitoramento (Nagios/Icinga soft/hard state).
+
+### Status "warning"
+
+O status `warning` é um estado intermediário que indica que algo pode estar prestes a cair, mas ainda não foi confirmado. Aparece:
+
+- Nas listagens de equipamentos e hosts (badge-warning)
+- No dashboard como bloco "Em Atenção"
+- No TV Dashboard com contagem separada
+
+Não gera alarme nem evento de incidente — serve apenas para dar visibilidade antecipada.
+
+### Configuração
+
+O threshold é configurável via variável de ambiente `FAILURE_THRESHOLD` (padrão: 3). Definido em `src/config/config.php` e usado centralizadamente por todos os crons.
+
+### Implementação
+
+A lógica está centralizada no serviço `src/src/Service/StatusTransition.php` com o método estático `evaluate()`. Funciona tanto para mikrotiks (`onlineValue='online'`, `offlineValue='offline'`) quanto para netwatch_hosts (`onlineValue='up'`, `offlineValue='down'`).
+
+Os crons `collect.php`, `collect_netwatch.php` e `collect_ping.php` chamam `StatusTransition::evaluate()` ao invés de implementar a lógica de transição diretamente — evitando duplicação e garantindo comportamento consistente.
+
+### Campo `first_failure_at`
+
+Quando o status finalmente vira offline após 3 falhas, o evento gravado em `mikrotik_events`/`netwatch_events` reflete a hora REAL em que o problema começou (a primeira falha), não o momento em que o sistema confirmou. Isso mantém os cálculos de uptime % e MTTR corretos.
 
 ## Dependências PHP
 

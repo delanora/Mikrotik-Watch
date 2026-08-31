@@ -5,6 +5,8 @@ declare(strict_types=1);
  * @var array $hostSummary   Resumo de Hosts
  * @var array $offlineMikrotiks  Mikrotiks offline
  * @var array $downHosts         Hosts down
+ * @var array $warningMikrotiks  Mikrotiks em warning
+ * @var array $warningHosts      Hosts em warning
  */
 
 function timeAgo(?string $datetime): string
@@ -80,6 +82,15 @@ function timeAgo(?string $datetime): string
         </div>
     </div>
     <div class="stat-card">
+        <div class="stat-icon" style="color: var(--warning); border-color: var(--warning-border); background: var(--warning-bg);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3 style="color: var(--warning);"><?= (int) $summary['warning_mikrotiks'] ?></h3>
+            <p>Dispositivos Em Atenção</p>
+        </div>
+    </div>
+    <div class="stat-card">
         <div class="stat-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
         </div>
@@ -106,7 +117,135 @@ function timeAgo(?string $datetime): string
             <p>Hosts Down</p>
         </div>
     </div>
+    <div class="stat-card">
+        <div class="stat-icon" style="color: var(--warning); border-color: var(--warning-border); background: var(--warning-bg);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3 style="color: var(--warning);"><?= (int) $hostSummary['warning_hosts'] ?></h3>
+            <p>Hosts Em Atenção</p>
+        </div>
+    </div>
 </div>
+
+<!-- ─── Em Atenção (Mikrotiks e Hosts) ────────────────────────────────────────── -->
+
+<?php if (!empty($warningMikrotiks) || !empty($warningHosts)): ?>
+<div class="card">
+    <div class="card-header">
+        <h2>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Em Atenção
+            <?php $warningCount = count($warningMikrotiks) + count($warningHosts); ?>
+            <?php if ($warningCount > 0): ?>
+                <span class="badge badge-warning" style="margin-left: 4px;"><?= $warningCount ?></span>
+            <?php endif; ?>
+        </h2>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <?php if (!empty($warningMikrotiks)): ?>
+            <table class="table dashboard-table">
+                <colgroup>
+                    <col style="width: 18%;">
+                    <col style="width: 22%;">
+                    <col style="width: 22%;">
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                    <col style="width: 14%; text-align: right;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Equipamento</th>
+                        <th>Host</th>
+                        <th>Status</th>
+                        <th>Alerta há</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($warningMikrotiks as $m): ?>
+                        <tr>
+                            <td>
+                                <span class="text-muted"><?= htmlspecialchars($m['client_name'] ?? '—') ?></span>
+                            </td>
+                            <td>
+                                <strong><?= htmlspecialchars($m['name']) ?></strong>
+                            </td>
+                            <td>
+                                <code><?= htmlspecialchars($m['host']) ?></code>
+                            </td>
+                            <td>
+                                <span class="badge badge-warning">warning</span>
+                            </td>
+                            <td>
+                                <strong><?= timeAgo($m['status_since']) ?></strong>
+                            </td>
+                            <td style="text-align: right;">
+                                <a href="/mikrotiks/<?= htmlspecialchars($m['id']) ?>" class="btn btn-ghost" title="Ver detalhes">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </a>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+        <?php if (!empty($warningHosts)): ?>
+            <table class="table dashboard-table">
+                <colgroup>
+                    <col style="width: 18%;">
+                    <col style="width: 22%;">
+                    <col style="width: 22%;">
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                    <col style="width: 14%; text-align: right;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Equipamento</th>
+                        <th>Host</th>
+                        <th>Status</th>
+                        <th>Alerta há</th>
+                        <th style="text-align: right;">Comentário</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($warningHosts as $h): ?>
+                        <tr>
+                            <td>
+                                <span class="text-muted"><?= htmlspecialchars($h['client_name'] ?? '—') ?></span>
+                            </td>
+                            <td>
+                                <strong><?= htmlspecialchars($h['mikrotik_name'] ?? '—') ?></strong>
+                            </td>
+                            <td>
+                                <code><?= htmlspecialchars($h['host_address']) ?></code>
+                            </td>
+                            <td>
+                                <span class="badge badge-warning">warning</span>
+                            </td>
+                            <td>
+                                <strong><?= timeAgo($h['status_since']) ?></strong>
+                            </td>
+                            <td style="text-align: right;">
+                                <?php if (!empty($h['comment'])): ?>
+                                    <span class="fit-text" style="background: var(--warning-bg); color: var(--warning); padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                                        <?= htmlspecialchars($h['comment']) ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- ─── Dispositivos Offline ─────────────────────────────────────────────────── -->
 

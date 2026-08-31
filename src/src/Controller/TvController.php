@@ -33,6 +33,7 @@ class TvController
                 COUNT(*) FILTER (WHERE active = true) AS total,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'online\') AS online,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'offline\') AS offline,
+                COUNT(*) FILTER (WHERE active = true AND current_status = \'warning\') AS warning,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'unknown\') AS unknown
             FROM mikrotiks
         ');
@@ -45,6 +46,7 @@ class TvController
                 COUNT(*) FILTER (WHERE active = true) AS total,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'up\') AS up,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'down\') AS down,
+                COUNT(*) FILTER (WHERE active = true AND current_status = \'warning\') AS warning,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'unknown\') AS unknown
             FROM netwatch_hosts
         ');
@@ -65,9 +67,10 @@ class TvController
             ORDER BY
                 CASE m.current_status
                     WHEN \'offline\' THEN 0
-                    WHEN \'unknown\' THEN 1
-                    WHEN \'online\' THEN 2
-                    ELSE 3
+                    WHEN \'warning\' THEN 1
+                    WHEN \'unknown\' THEN 2
+                    WHEN \'online\' THEN 3
+                    ELSE 4
                 END,
                 c.name ASC,
                 m.name ASC
@@ -117,7 +120,8 @@ class TvController
             SELECT
                 COUNT(*) FILTER (WHERE active = true) AS total,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'online\') AS online,
-                COUNT(*) FILTER (WHERE active = true AND current_status = \'offline\') AS offline
+                COUNT(*) FILTER (WHERE active = true AND current_status = \'offline\') AS offline,
+                COUNT(*) FILTER (WHERE active = true AND current_status = \'warning\') AS warning
             FROM mikrotiks
         ');
         $deviceSummary = $stmt->fetch();
@@ -126,7 +130,8 @@ class TvController
             SELECT
                 COUNT(*) FILTER (WHERE active = true) AS total,
                 COUNT(*) FILTER (WHERE active = true AND current_status = \'up\') AS up,
-                COUNT(*) FILTER (WHERE active = true AND current_status = \'down\') AS down
+                COUNT(*) FILTER (WHERE active = true AND current_status = \'down\') AS down,
+                COUNT(*) FILTER (WHERE active = true AND current_status = \'warning\') AS warning
             FROM netwatch_hosts
         ');
         $hostSummary = $stmt->fetch();
@@ -144,9 +149,10 @@ class TvController
             ORDER BY
                 CASE m.current_status
                     WHEN \'offline\' THEN 0
-                    WHEN \'unknown\' THEN 1
-                    WHEN \'online\' THEN 2
-                    ELSE 3
+                    WHEN \'warning\' THEN 1
+                    WHEN \'unknown\' THEN 2
+                    WHEN \'online\' THEN 3
+                    ELSE 4
                 END,
                 c.name ASC, m.name ASC
         ');

@@ -83,9 +83,10 @@ class ClientHostsController
                 ORDER BY
                     CASE nh.current_status
                         WHEN 'down' THEN 0
-                        WHEN 'unknown' THEN 1
-                        WHEN 'up' THEN 2
-                        ELSE 3
+                        WHEN 'warning' THEN 1
+                        WHEN 'unknown' THEN 2
+                        WHEN 'up' THEN 3
+                        ELSE 4
                     END,
                     nh.status_since ASC NULLS LAST,
                     m.name ASC,

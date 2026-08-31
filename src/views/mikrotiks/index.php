@@ -127,6 +127,15 @@ if ($filterClientId !== '') {
         </div>
     </div>
     <div class="stat-card">
+        <div class="stat-icon" style="color: var(--warning); border-color: var(--warning-border); background: var(--warning-bg);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-info">
+            <h3 style="color: var(--warning);"><?= (int) $summary['warning'] ?></h3>
+            <p>Em Atenção</p>
+        </div>
+    </div>
+    <div class="stat-card">
         <div class="stat-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
         </div>
@@ -232,6 +241,7 @@ if ($filterClientId !== '') {
                                 $statusClass = match ($status) {
                                     'online'  => 'badge-success',
                                     'offline' => 'badge-danger',
+                                    'warning' => 'badge-warning',
                                     default   => 'badge-secondary',
                                 };
                                 ?>

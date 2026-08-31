@@ -42,14 +42,16 @@ class ClientController
                 c.*,
                 COALESCE(m.mikrotik_count, 0) AS mikrotik_count,
                 COALESCE(m.online_count, 0)   AS online_count,
-                COALESCE(m.offline_count, 0)  AS offline_count
+                COALESCE(m.offline_count, 0)  AS offline_count,
+                COALESCE(m.warning_count, 0)  AS warning_count
             FROM clients c
             LEFT JOIN (
                 SELECT
                     client_id,
                     COUNT(*)                                         AS mikrotik_count,
                     COUNT(*) FILTER (WHERE current_status = 'online')  AS online_count,
-                    COUNT(*) FILTER (WHERE current_status = 'offline') AS offline_count
+                    COUNT(*) FILTER (WHERE current_status = 'offline') AS offline_count,
+                    COUNT(*) FILTER (WHERE current_status = 'warning') AS warning_count
                 FROM mikrotiks
                 WHERE active = true
                 GROUP BY client_id

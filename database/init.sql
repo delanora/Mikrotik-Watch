@@ -79,9 +79,13 @@ CREATE TABLE mikrotiks (
 
     -- Status atual (cache da última verificação)
     current_status      VARCHAR(10)   NOT NULL DEFAULT 'unknown'
-        CHECK (current_status IN ('online', 'offline', 'unknown')),
+        CHECK (current_status IN ('online', 'offline', 'unknown', 'warning')),
     status_since        TIMESTAMPTZ,
     last_checked_at     TIMESTAMPTZ,
+
+    -- Debounce de status (confirmação por falhas consecutivas)
+    consecutive_failures INTEGER      NOT NULL DEFAULT 0,
+    first_failure_at    TIMESTAMPTZ,
 
     -- Últimas métricas de saúde (cache para telas de listagem)
     last_cpu_load       SMALLINT,
@@ -184,9 +188,13 @@ CREATE TABLE netwatch_hosts (
     comment           VARCHAR(500),
     mikrotik_ref_id   VARCHAR(50),
     current_status    VARCHAR(10)  NOT NULL DEFAULT 'unknown'
-        CHECK (current_status IN ('up', 'down', 'unknown')),
+        CHECK (current_status IN ('up', 'down', 'unknown', 'warning')),
     status_since      TIMESTAMPTZ,
     last_checked_at   TIMESTAMPTZ,
+
+    -- Debounce de status (confirmação por falhas consecutivas)
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    first_failure_at  TIMESTAMPTZ,
     last_rtt_ms       INTEGER,
     active            BOOLEAN      NOT NULL DEFAULT true,
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT now()

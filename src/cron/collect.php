@@ -247,19 +247,10 @@ try {
                 }
             }
 
-            // Verificar se o status vai mudar (para criar evento)
-            $statusChanged = ($mikrotik['current_status'] !== 'online');
-
             // Atualizar mikrotiks (campos last_*)
             $stmt = $db->prepare('
                 UPDATE mikrotiks
-                SET current_status = \'online\'::varchar,
-                    status_since = CASE
-                        WHEN current_status != \'online\' THEN now()
-                        ELSE status_since
-                    END,
-                    last_checked_at = now(),
-                    last_cpu_load = :cpu_load,
+                SET last_cpu_load = :cpu_load,
                     last_memory_free = :memory_free,
                     last_memory_total = :memory_total,
                     last_temperature = :temperature,
@@ -279,26 +270,17 @@ try {
                 ':id'               => $mikrotikId,
             ]);
 
-            // Se o status mudou, criar evento em mikrotik_events
-            if ($statusChanged) {
-                // Fechar evento aberto anterior (se houver)
-                $stmt = $db->prepare('
-                    UPDATE mikrotik_events
-                    SET ended_at = now(),
-                        duration_seconds = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER
-                    WHERE mikrotik_id = :id AND ended_at IS NULL
-                ');
-                $stmt->execute([':id' => $mikrotikId]);
-
-                // Criar novo evento
-                $stmt = $db->prepare('
-                    INSERT INTO mikrotik_events (mikrotik_id, status, started_at)
-                    VALUES (:id, \'online\', now())
-                ');
-                $stmt->execute([':id' => $mikrotikId]);
-
-                logMessage("[{$name}] 📝 Evento registrado: offline → online");
-            }
+            // Avaliar transição de status via StatusTransition (debounce)
+            \App\Service\StatusTransition::evaluate(
+                db: $db,
+                table: 'mikrotiks',
+                eventsTable: 'mikrotik_events',
+                entityId: (int) $mikrotikId,
+                checkSucceeded: true,
+                onlineValue: 'online',
+                offlineValue: 'offline',
+                failureThreshold: $config['failure']['threshold'],
+            );
 
             // Inserir no health_log (histórico)
             $stmt = $db->prepare('
@@ -323,42 +305,17 @@ try {
             $success++;
 
         } catch (\App\Exception\MikrotikApiException $e) {
-            // Verificar se o status vai mudar (para criar evento)
-            $statusChanged = ($mikrotik['current_status'] !== 'offline');
-
-            // Conexão falhou → marcar offline
-            $stmt = $db->prepare('
-                UPDATE mikrotiks
-                SET current_status = \'offline\'::varchar,
-                    status_since = CASE
-                        WHEN current_status != \'offline\' THEN now()
-                        ELSE status_since
-                    END,
-                    last_checked_at = now()
-                WHERE id = :id
-            ');
-            $stmt->execute([':id' => $mikrotikId]);
-
-            // Se o status mudou, criar evento em mikrotik_events
-            if ($statusChanged) {
-                // Fechar evento aberto anterior (se houver)
-                $stmt = $db->prepare('
-                    UPDATE mikrotik_events
-                    SET ended_at = now(),
-                        duration_seconds = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER
-                    WHERE mikrotik_id = :id AND ended_at IS NULL
-                ');
-                $stmt->execute([':id' => $mikrotikId]);
-
-                // Criar novo evento
-                $stmt = $db->prepare('
-                    INSERT INTO mikrotik_events (mikrotik_id, status, started_at)
-                    VALUES (:id, \'offline\', now())
-                ');
-                $stmt->execute([':id' => $mikrotikId]);
-
-                logMessage("[{$name}] 📝 Evento registrado: online → offline");
-            }
+            // Conexão falhou → avaliar transição via StatusTransition (debounce)
+            \App\Service\StatusTransition::evaluate(
+                db: $db,
+                table: 'mikrotiks',
+                eventsTable: 'mikrotik_events',
+                entityId: (int) $mikrotikId,
+                checkSucceeded: false,
+                onlineValue: 'online',
+                offlineValue: 'offline',
+                failureThreshold: $config['failure']['threshold'],
+            );
 
             logMessage("[{$name}] ❌ OFFLINE: {$e->getMessage()}");
             $errors++;

@@ -70,9 +70,10 @@ class MikrotikController
             ORDER BY
                 CASE m.current_status
                     WHEN 'offline' THEN 0
-                    WHEN 'unknown' THEN 1
-                    WHEN 'online' THEN 2
-                    ELSE 3
+                    WHEN 'warning' THEN 1
+                    WHEN 'unknown' THEN 2
+                    WHEN 'online' THEN 3
+                    ELSE 4
                 END,
                 m.status_since ASC NULLS LAST,
                 c.name ASC,
@@ -98,6 +99,7 @@ class MikrotikController
                 COUNT(*) AS total,
                 COUNT(*) FILTER (WHERE current_status = 'online') AS online,
                 COUNT(*) FILTER (WHERE current_status = 'offline') AS offline,
+                COUNT(*) FILTER (WHERE current_status = 'warning') AS warning,
                 COUNT(*) FILTER (WHERE current_status = 'unknown') AS unknown
             FROM mikrotiks
             WHERE active = true

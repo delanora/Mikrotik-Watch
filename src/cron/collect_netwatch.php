@@ -70,7 +70,8 @@ function syncNetwatchHosts(
     string $mikrotikName,
     array $apiHosts,
     array $existingHosts,
-    array &$stats
+    array &$stats,
+    int $failureThreshold,
 ): void {
     // Indexar existentes por mikrotik_ref_id
     $existingByRef = [];
@@ -166,7 +167,7 @@ function syncNetwatchHosts(
                 checkSucceeded: $checkSucceeded,
                 onlineValue: 'up',
                 offlineValue: 'down',
-                failureThreshold: $config['failure']['threshold'],
+                failureThreshold: $failureThreshold,
             );
 
             $stats['synced']++;
@@ -339,7 +340,7 @@ try {
             $stmt->execute([':mikrotik_id' => $mikrotikId]);
             $existingHosts = $stmt->fetchAll();
 
-            syncNetwatchHosts($db, $mikrotikId, $mikrotikName, $apiHosts, $existingHosts, $stats);
+            syncNetwatchHosts($db, $mikrotikId, $mikrotikName, $apiHosts, $existingHosts, $stats, $config['failure']['threshold']);
 
             $stats['processed']++;
 
@@ -376,7 +377,7 @@ try {
                     $stmt->execute([':mikrotik_id' => $mikrotikId]);
                     $existingHosts = $stmt->fetchAll();
 
-                    syncNetwatchHosts($db, $mikrotikId, $mikrotikName, $apiHosts, $existingHosts, $stats);
+                    syncNetwatchHosts($db, $mikrotikId, $mikrotikName, $apiHosts, $existingHosts, $stats, $config['failure']['threshold']);
                     $stats['processed']++;
 
                 } catch (\Throwable $retryErr) {

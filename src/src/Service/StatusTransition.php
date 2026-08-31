@@ -46,10 +46,12 @@ class StatusTransition
         string $offlineValue,
         int $failureThreshold,
     ): void {
+        $idColumn = self::resolveIdColumn($table);
+
         if ($checkSucceeded) {
-            self::handleSuccess($db, $table, $eventsTable, $entityId, $onlineValue, $offlineValue);
+            self::handleSuccess($db, $table, $eventsTable, $idColumn, $entityId, $onlineValue, $offlineValue);
         } else {
-            self::handleFailure($db, $table, $eventsTable, $entityId, $onlineValue, $offlineValue, $failureThreshold);
+            self::handleFailure($db, $table, $eventsTable, $idColumn, $entityId, $onlineValue, $offlineValue, $failureThreshold);
         }
     }
 
@@ -65,6 +67,7 @@ class StatusTransition
         PDO $db,
         string $table,
         string $eventsTable,
+        string $idColumn,
         string $entityId,
         string $onlineValue,
         string $offlineValue,
@@ -110,7 +113,7 @@ class StatusTransition
                 UPDATE {$eventsTable}
                 SET ended_at = now(),
                     duration_seconds = EXTRACT(EPOCH FROM (now() - started_at))::INTEGER
-                WHERE {$eventsTable}.{$table}_id = :entity_id
+                WHERE {$eventsTable}.{$idColumn} = :entity_id
                   AND {$eventsTable}.status = :offline_value
                   AND ended_at IS NULL
             ");
@@ -163,6 +166,7 @@ class StatusTransition
         PDO $db,
         string $table,
         string $eventsTable,
+        string $idColumn,
         string $entityId,
         string $onlineValue,
         string $offlineValue,
@@ -267,11 +271,9 @@ class StatusTransition
             ]);
 
             // Criar evento de offline (verificar se já não existe um aberto)
-            $entityIdColumn = ($table === 'mikrotiks') ? 'mikrotik_id' : 'netwatch_host_id';
-
             $stmt = $db->prepare("
                 SELECT COUNT(*) FROM {$eventsTable}
-                WHERE {$entityIdColumn} = :entity_id
+                WHERE {$idColumn} = :entity_id
                   AND status = :offline_value
                   AND ended_at IS NULL
             ");
@@ -283,7 +285,7 @@ class StatusTransition
 
             if ($existingOpen === 0) {
                 $stmt = $db->prepare("
-                    INSERT INTO {$eventsTable} ({$entityIdColumn}, status, started_at)
+                    INSERT INTO {$eventsTable} ({$idColumn}, status, started_at)
                     VALUES (:entity_id, :offline_value, :started_at)
                 ");
                 $stmt->execute([
@@ -307,5 +309,20 @@ class StatusTransition
                 ':id'               => $entityId,
             ]);
         }
+    }
+
+    /**
+     * Resolve o nome da coluna FK para a tabela de eventos.
+     *
+     * mikrotiks     → mikrotik_id
+     * netwatch_hosts → netwatch_host_id
+     */
+    private static function resolveIdColumn(string $table): string
+    {
+        return match ($table) {
+            'mikrotiks'      => 'mikrotik_id',
+            'netwatch_hosts' => 'netwatch_host_id',
+            default          => $table . '_id',
+        };
     }
 }

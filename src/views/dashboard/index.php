@@ -53,7 +53,8 @@ function timeAgo(?string $datetime): string
 
 <!-- ─── Resumo ────────────────────────────────────────────────────────────── -->
 
-<div class="stats-grid">
+<div class="stats-section-label">Equipamentos</div>
+<div class="stats-grid-4">
     <div class="stat-card">
         <div class="stat-icon icon-accent">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/></svg>
@@ -69,7 +70,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3 style="color: var(--success);"><?= (int) $summary['online_mikrotiks'] ?></h3>
-            <p>Dispositivos Online</p>
+            <p>Online</p>
         </div>
     </div>
     <div class="stat-card">
@@ -78,7 +79,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3 style="color: var(--danger);"><?= (int) $summary['offline_mikrotiks'] ?></h3>
-            <p>Dispositivos Offline</p>
+            <p>Offline</p>
         </div>
     </div>
     <div class="stat-card">
@@ -87,16 +88,20 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3 style="color: var(--warning);"><?= (int) $summary['warning_mikrotiks'] ?></h3>
-            <p>Dispositivos Em Atenção</p>
+            <p>Em Atenção</p>
         </div>
     </div>
+</div>
+
+<div class="stats-section-label">Hosts Netwatch</div>
+<div class="stats-grid-4" style="margin-bottom: 28px;">
     <div class="stat-card">
         <div class="stat-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
         </div>
         <div class="stat-info">
             <h3><?= (int) $hostSummary['total_hosts'] ?></h3>
-            <p>Hosts internos</p>
+            <p>Total hosts</p>
         </div>
     </div>
     <div class="stat-card">
@@ -105,7 +110,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3 style="color: var(--success);"><?= (int) $hostSummary['up_hosts'] ?></h3>
-            <p>Hosts Up</p>
+            <p>Up</p>
         </div>
     </div>
     <div class="stat-card">
@@ -114,7 +119,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3 style="color: var(--danger);"><?= (int) $hostSummary['down_hosts'] ?></h3>
-            <p>Hosts Down</p>
+            <p>Down</p>
         </div>
     </div>
     <div class="stat-card">
@@ -123,7 +128,7 @@ function timeAgo(?string $datetime): string
         </div>
         <div class="stat-info">
             <h3 style="color: var(--warning);"><?= (int) $hostSummary['warning_hosts'] ?></h3>
-            <p>Hosts Em Atenção</p>
+            <p>Em Atenção</p>
         </div>
     </div>
 </div>

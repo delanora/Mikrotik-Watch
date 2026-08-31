@@ -260,6 +260,23 @@ main.full-page {
     margin-bottom: 28px;
 }
 
+.stats-grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.stats-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    margin-top: 8px;
+}
+
 .stat-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -936,6 +953,11 @@ small { color: var(--text-muted); }
     .sidebar { width: 100%; height: auto; position: relative; }
     main.with-sidebar { margin-left: 0; }
     .stats-grid { grid-template-columns: 1fr; }
+    .stats-grid-4 { grid-template-columns: repeat(2, 1fr); }
     .page-header { flex-direction: column; gap: 12px; align-items: flex-start; }
     .form-actions { flex-direction: column; }
+}
+
+@media (max-width: 480px) {
+    .stats-grid-4 { grid-template-columns: 1fr; }
 }

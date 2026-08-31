@@ -144,44 +144,39 @@ function tvMemPct($free, $total): ?float
         /* ─── Summary Cards ─────────────────────────────────────── */
 
         .tv-summary {
-            display: grid;
-            grid-template-columns: 1fr 320px;
-            gap: 14px;
-            padding: 20px 28px 18px;
-            align-items: start;
+            display: flex;
+            gap: 16px;
+            padding: 16px 28px 14px;
         }
 
-        .tv-summary-left {
+        .tv-summary-group {
+            flex: 1;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 10px;
         }
 
-        .tv-summary-left .tv-stat {
+        .tv-summary-group .tv-stat {
             padding: 12px 14px;
             gap: 10px;
         }
 
-        .tv-summary-left .tv-stat .stat-icon {
+        .tv-summary-group .tv-stat .stat-icon {
             width: 36px;
             height: 36px;
         }
 
-        .tv-summary-left .tv-stat .stat-icon svg {
+        .tv-summary-group .tv-stat .stat-icon svg {
             width: 18px;
             height: 18px;
         }
 
-        .tv-summary-left .tv-stat .stat-info h3 {
+        .tv-summary-group .tv-stat .stat-info h3 {
             font-size: 22px;
         }
 
-        .tv-summary-left .tv-stat .stat-info p {
+        .tv-summary-group .tv-stat .stat-info p {
             font-size: 10px;
-        }
-
-        .tv-summary-right .tv-stat {
-            width: 100%;
         }
 
         .tv-stat {
@@ -548,7 +543,7 @@ function tvMemPct($free, $total): ?float
 <!-- ─── Summary ─────────────────────────────────────────────────────────── -->
 
 <div class="tv-summary">
-    <div class="tv-summary-left">
+    <div class="tv-summary-group">
     <div class="tv-stat">
         <div class="stat-icon icon-accent" style="background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent);">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
@@ -585,35 +580,44 @@ function tvMemPct($free, $total): ?float
             <p>Em Atenção</p>
         </div>
     </div>
-    <div class="tv-stat">
-        <div class="stat-icon icon-accent" style="background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-        </div>
-        <div class="stat-info">
-            <h3><?= (int) $hostSummary['total'] ?></h3>
-            <p>Hosts</p>
-        </div>
     </div>
-    <div class="tv-stat">
-        <div class="stat-icon" style="background: var(--success-bg); border-color: var(--success-border); color: var(--success);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+    <div class="tv-summary-group">
+        <div class="tv-stat">
+            <div class="stat-icon icon-accent" style="background: var(--accent-bg); border-color: var(--accent-border); color: var(--accent);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3><?= (int) $hostSummary['total'] ?></h3>
+                <p>Hosts</p>
+            </div>
         </div>
-        <div class="stat-info">
-            <h3 style="color: var(--success);"><?= (int) $hostSummary['up'] ?></h3>
-            <p>Hosts Up</p>
+        <div class="tv-stat">
+            <div class="stat-icon" style="background: var(--success-bg); border-color: var(--success-border); color: var(--success);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3 style="color: var(--success);">= (int) $hostSummary['up'] ?></h3>
+                <p>Up</p>
+            </div>
         </div>
-    </div>
-    </div>
-    <div class="tv-summary-right">
-    <div class="tv-stat">
-        <div class="stat-icon" style="background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <div class="tv-stat">
+            <div class="stat-icon" style="background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3 style="color: #f87171;"><?= (int) $hostSummary['down'] ?></h3>
+                <p>Down</p>
+            </div>
         </div>
-        <div class="stat-info">
-            <h3 style="color: #f87171;"><?= (int) $hostSummary['down'] ?></h3>
-            <p>Hosts Down</p>
+        <div class="tv-stat">
+            <div class="stat-icon" style="background: var(--warning-bg); border-color: var(--warning-border); color: var(--warning);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="stat-info">
+                <h3 style="color: var(--warning);">= (int) $hostSummary['warning'] ?></h3>
+                <p>Em Atenção</p>
+            </div>
         </div>
-    </div>
     </div>
 </div>
 
@@ -769,7 +773,7 @@ function tvMemPct($free, $total): ?float
             .then(function(r) { return r.json(); })
             .then(function(data) {
                 var stats = document.querySelectorAll('.tv-stat .stat-info h3');
-                if (stats.length >= 7) {
+                if (stats.length >= 8) {
                     stats[0].textContent = data.devices.total;
                     stats[1].textContent = data.devices.online;
                     stats[2].textContent = data.devices.offline;
@@ -777,6 +781,7 @@ function tvMemPct($free, $total): ?float
                     stats[4].textContent = data.hosts.total;
                     stats[5].textContent = data.hosts.up;
                     stats[6].textContent = data.hosts.down;
+                    stats[7].textContent = data.hosts.warning || 0;
                 }
 
                 if (data.lastCheck) {

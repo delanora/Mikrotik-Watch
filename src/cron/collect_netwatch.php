@@ -162,7 +162,7 @@ function syncNetwatchHosts(
                 db: $db,
                 table: 'netwatch_hosts',
                 eventsTable: 'netwatch_events',
-                entityId: (int) $existing['id'],
+                entityId: (string) $existing['id'],
                 checkSucceeded: $checkSucceeded,
                 onlineValue: 'up',
                 offlineValue: 'down',

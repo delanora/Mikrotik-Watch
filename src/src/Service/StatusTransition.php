@@ -40,7 +40,7 @@ class StatusTransition
         PDO $db,
         string $table,
         string $eventsTable,
-        int $entityId,
+        string $entityId,
         bool $checkSucceeded,
         string $onlineValue,
         string $offlineValue,

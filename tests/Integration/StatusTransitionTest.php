@@ -55,7 +55,7 @@ class StatusTransitionTest extends TestCase
 
     public function testMikrotikOneFailureStaysOnline(): void
     {
-        $id = (int) self::$testMikrotikId;
+        $id = self::$testMikrotikId;
 
         StatusTransition::evaluate(self::$pdo, 'mikrotiks', 'mikrotik_events', $id, false, 'online', 'offline', self::THRESHOLD);
 
@@ -71,7 +71,7 @@ class StatusTransitionTest extends TestCase
 
     public function testMikrotikTwoFailuresChangesToWarning(): void
     {
-        $id = (int) self::$testMikrotikId;
+        $id = self::$testMikrotikId;
 
         // 1ª falha
         StatusTransition::evaluate(self::$pdo, 'mikrotiks', 'mikrotik_events', $id, false, 'online', 'offline', self::THRESHOLD);
@@ -89,7 +89,7 @@ class StatusTransitionTest extends TestCase
 
     public function testMikrotikThreeFailuresChangesToOfflineWithCorrectStartedAt(): void
     {
-        $id = (int) self::$testMikrotikId;
+        $id = self::$testMikrotikId;
 
         // 1ª falha — first_failure_at é registrado
         StatusTransition::evaluate(self::$pdo, 'mikrotiks', 'mikrotik_events', $id, false, 'online', 'offline', self::THRESHOLD);
@@ -119,7 +119,7 @@ class StatusTransitionTest extends TestCase
 
     public function testMikrotikFourthAndFifthFailureAreIdempotent(): void
     {
-        $id = (int) self::$testMikrotikId;
+        $id = self::$testMikrotikId;
 
         // 3 falhas para chegar ao offline
         StatusTransition::evaluate(self::$pdo, 'mikrotiks', 'mikrotik_events', $id, false, 'online', 'offline', self::THRESHOLD);
@@ -142,7 +142,7 @@ class StatusTransitionTest extends TestCase
 
     public function testMikrotikSuccessAfterOneOrTwoFailuresResetsCounters(): void
     {
-        $id = (int) self::$testMikrotikId;
+        $id = self::$testMikrotikId;
 
         // 1ª falha
         StatusTransition::evaluate(self::$pdo, 'mikrotiks', 'mikrotik_events', $id, false, 'online', 'offline', self::THRESHOLD);
@@ -164,7 +164,7 @@ class StatusTransitionTest extends TestCase
 
     public function testMikrotikSuccessAfterOfflineClosesEventAndReturnsOnline(): void
     {
-        $id = (int) self::$testMikrotikId;
+        $id = self::$testMikrotikId;
 
         // 3 falhas → offline
         StatusTransition::evaluate(self::$pdo, 'mikrotiks', 'mikrotik_events', $id, false, 'online', 'offline', self::THRESHOLD);
@@ -191,7 +191,7 @@ class StatusTransitionTest extends TestCase
 
     public function testMikrotikAlreadyOnlineWithNoFailuresOnlyUpdatesLastChecked(): void
     {
-        $id = (int) self::$testMikrotikId;
+        $id = self::$testMikrotikId;
 
         $before = self::getMikrotik($id)['last_checked_at'];
 
@@ -215,7 +215,7 @@ class StatusTransitionTest extends TestCase
 
     public function testNetwatchOneFailureStaysUp(): void
     {
-        $id = (int) self::$testNetwatchHostId;
+        $id = self::$testNetwatchHostId;
 
         StatusTransition::evaluate(self::$pdo, 'netwatch_hosts', 'netwatch_events', $id, false, 'up', 'down', self::THRESHOLD);
 
@@ -229,7 +229,7 @@ class StatusTransitionTest extends TestCase
 
     public function testNetwatchTwoFailuresChangesToWarning(): void
     {
-        $id = (int) self::$testNetwatchHostId;
+        $id = self::$testNetwatchHostId;
 
         StatusTransition::evaluate(self::$pdo, 'netwatch_hosts', 'netwatch_events', $id, false, 'up', 'down', self::THRESHOLD);
         StatusTransition::evaluate(self::$pdo, 'netwatch_hosts', 'netwatch_events', $id, false, 'up', 'down', self::THRESHOLD);
@@ -244,7 +244,7 @@ class StatusTransitionTest extends TestCase
 
     public function testNetwatchThreeFailuresChangesToDownWithCorrectStartedAt(): void
     {
-        $id = (int) self::$testNetwatchHostId;
+        $id = self::$testNetwatchHostId;
 
         StatusTransition::evaluate(self::$pdo, 'netwatch_hosts', 'netwatch_events', $id, false, 'up', 'down', self::THRESHOLD);
         $firstFailure = self::getNetwatchHost($id)['first_failure_at'];
@@ -266,7 +266,7 @@ class StatusTransitionTest extends TestCase
 
     public function testNetwatchSuccessAfterDownClosesEventAndReturnsUp(): void
     {
-        $id = (int) self::$testNetwatchHostId;
+        $id = self::$testNetwatchHostId;
 
         // 3 falhas → down
         StatusTransition::evaluate(self::$pdo, 'netwatch_hosts', 'netwatch_events', $id, false, 'up', 'down', self::THRESHOLD);
@@ -287,7 +287,7 @@ class StatusTransitionTest extends TestCase
 
     public function testNetwatchIdempotencyOnRepeatedOffline(): void
     {
-        $id = (int) self::$testNetwatchHostId;
+        $id = self::$testNetwatchHostId;
 
         // 3 falhas → down
         StatusTransition::evaluate(self::$pdo, 'netwatch_hosts', 'netwatch_events', $id, false, 'up', 'down', self::THRESHOLD);

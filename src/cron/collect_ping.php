@@ -160,7 +160,7 @@ try {
                 db: $db,
                 table: 'mikrotiks',
                 eventsTable: 'mikrotik_events',
-                entityId: (int) $device['id'],
+                entityId: $device['id'],
                 checkSucceeded: $pingOk,
                 onlineValue: 'online',
                 offlineValue: 'offline',

@@ -65,7 +65,7 @@ class StatusTransition
         PDO $db,
         string $table,
         string $eventsTable,
-        int $entityId,
+        string $entityId,
         string $onlineValue,
         string $offlineValue,
     ): void {
@@ -163,7 +163,7 @@ class StatusTransition
         PDO $db,
         string $table,
         string $eventsTable,
-        int $entityId,
+        string $entityId,
         string $onlineValue,
         string $offlineValue,
         int $failureThreshold,

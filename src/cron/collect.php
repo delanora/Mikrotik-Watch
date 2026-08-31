@@ -194,23 +194,6 @@ try {
             if ($resourceResult === null || isset($resourceResult['error'])) {
                 $errorMsg = $resourceResult['error'] ?? 'Sem resposta';
 
-                // Se o device estava online, NÃO marcar offline imediatamente.
-                // Uma falha transitória (timeout de 5s, SSL renegotiation) não
-                // deveria causar o device aparecer offline no painel.
-                // Apenas se já estava offline, ou se o last_checked_at é antigo
-                // (> 3 min), consideramos uma falha real.
-                if ($mikrotik['current_status'] === 'online' && $mikrotik['last_checked_at'] !== null) {
-                    $lastChecked = new \DateTime($mikrotik['last_checked_at']);
-                    $now = new \DateTime();
-                    $diffMinutes = $now->diff($lastChecked)->i;
-
-                    if ($diffMinutes <= 3) {
-                        logMessage("[{$name}] ⚠️ Falha transitória ({$errorMsg}). Device continua online.");
-                        $success++; // Não contar como erro
-                        continue;
-                    }
-                }
-
                 throw new \App\Exception\MikrotikApiException(
                     "Falha de conexão com {$mikrotik['host']}: {$errorMsg}",
                     $mikrotik['host'],

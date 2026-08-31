@@ -153,8 +153,31 @@ function tvMemPct($free, $total): ?float
 
         .tv-summary-left {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 14px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .tv-summary-left .tv-stat {
+            padding: 12px 14px;
+            gap: 10px;
+        }
+
+        .tv-summary-left .tv-stat .stat-icon {
+            width: 36px;
+            height: 36px;
+        }
+
+        .tv-summary-left .tv-stat .stat-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .tv-summary-left .tv-stat .stat-info h3 {
+            font-size: 22px;
+        }
+
+        .tv-summary-left .tv-stat .stat-info p {
+            font-size: 10px;
         }
 
         .tv-summary-right .tv-stat {
